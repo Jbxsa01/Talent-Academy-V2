@@ -42,7 +42,7 @@ const StripePayment: React.FC<StripePaymentProps> = ({
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch('/.netlify/functions/create-payment-intent', {
+        const response = await fetch('/api/create-payment-intent', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -66,9 +66,9 @@ const StripePayment: React.FC<StripePaymentProps> = ({
         setClientSecret(data.clientSecret);
       } catch (error) {
         console.error('Error creating payment intent:', error);
-        // For local development without Netlify, show a helpful message
+        // For local development without API, show a helpful message
         if (import.meta.env.DEV) {
-          console.warn('⚠️  Netlify functions not available in local development. Running: npm run dev');
+          console.warn('⚠️  API functions not available in local development. Running: npm run dev');
           setError('DEV_MODE');
         } else {
           setError('Erreur de paiement. Veuillez vérifier votre connexion et réessayer.');
