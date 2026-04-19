@@ -3,9 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, collection, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { Star, Clock, Users, CheckCircle2, MessageSquare, CreditCard, ArrowLeft, LayoutGrid, Radio, Zap, Award, BookOpen } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import StripePayment from '../components/StripePayment';
+import { Star, Clock, Users, CheckCircle2, MessageSquare, CreditCard, ArrowLeft, LayoutGrid, Radio, Zap, Award, BookOpen, Loader2 } from 'lucide-react';
+import { motion } from 'motion/react';
 import FollowTalentButton from '../components/FollowTalentButton';
 
 const TalentDetail = () => {
@@ -16,8 +15,6 @@ const TalentDetail = () => {
   const [offers, setOffers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
-  const [showStripe, setShowStripe] = useState(false);
-  const [selectedOffer, setSelectedOffer] = useState<any>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -40,45 +37,42 @@ const TalentDetail = () => {
 
   const handlePurchase = async (offer: any) => {
     if (!user) return navigate('/login');
-    setSelectedOffer(offer);
-    setShowStripe(true);
-  };
+    if (!talent) return;
 
-  const handlePaymentSuccess = async (paymentIntentId: string) => {
-    if (!user || !talent || !selectedOffer) return;
-    
     setPurchasing(true);
     try {
+      // Create transaction
       const transactionData = {
         learnerId: user.uid,
         trainerId: talent.trainerId,
-        offerId: selectedOffer.id,
+        offerId: offer.id,
         talentId: talent.id,
-        amount: 120,
-        commission: 24,
+        amount: offer.price || 120,
+        commission: Math.round((offer.price || 120) * 0.2),
         status: 'completed',
-        paymentIntentId,
+        paymentMethod: 'mock',
         createdAt: new Date().toISOString(),
       };
       
-      await addDoc(collection(db, 'transactions'), transactionData);
+      const transactionRef = await addDoc(collection(db, 'transactions'), transactionData);
 
+      // Create chat
       const chatData = {
         participants: [user.uid, talent.trainerId],
-        offerId: selectedOffer.id,
-        offerTitle: selectedOffer.title,
+        offerId: offer.id,
+        offerTitle: offer.title,
         talentTitle: talent.title,
         talentId: talent.id,
         updatedAt: new Date().toISOString(),
-        lastMessage: '✅ Paiement confirmé! Chat ouvert. Envoyez un message pour commencer.',
+        lastMessage: '✅ Accès accordé! Commencez à apprendre.',
       };
       const chatRef = await addDoc(collection(db, 'chats'), chatData);
 
-      setShowStripe(false);
+      // Navigate to chat
       navigate(`/messaging/${chatRef.id}`);
     } catch (err) {
-      console.error('Error after payment:', err);
-      alert('Erreur lors de la création de la session. Contactez le support.');
+      console.error('Error processing purchase:', err);
+      alert('Erreur lors de l\'achat. Veuillez réessayer.');
     } finally {
       setPurchasing(false);
     }
@@ -315,16 +309,6 @@ const TalentDetail = () => {
           </div>
         </motion.div>
       </div>
-
-      {/* Stripe Payment Modal */}
-      <StripePayment
-        isOpen={showStripe}
-        onClose={() => setShowStripe(false)}
-        amount={120}
-        talentTitle={talent?.title || ''}
-        offerTitle={selectedOffer?.title || ''}
-        onPaymentSuccess={handlePaymentSuccess}
-      />
     </div>
   );
 };
