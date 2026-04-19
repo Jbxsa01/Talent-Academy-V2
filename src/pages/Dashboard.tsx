@@ -31,25 +31,18 @@ const Dashboard = () => {
     setFailedImages(prev => new Set([...prev, talentId]));
   };
 
-  console.log('📊 Dashboard mounted. User:', user?.email, 'Profile:', profile ? 'exists' : 'null');
+  const hasFetchedRef = useRef(false);
 
   const fetchData = async () => {
-    if (!user) {
-      console.log('⚠️ No user, skipping fetchData');
-      return;
-    }
+    if (!user) return;
 
     try {
-      console.log('🔄 Fetching dashboard data for user:', user.uid);
-      
       const qLearning = query(collection(db, 'transactions'), where('learnerId', '==', user.uid));
       const snapLearning = await getDocs(qLearning);
-      console.log('✅ Learning talents:', snapLearning.docs.length);
       setLearningTalents(snapLearning.docs.map(d => ({ id: d.id, ...d.data() })));
 
       const qTraining = query(collection(db, 'talents'), where('trainerId', '==', user.uid));
       const snapTraining = await getDocs(qTraining);
-      console.log('✅ Training talents:', snapTraining.docs.length);
       setTrainingTalents(snapTraining.docs.map(d => ({ id: d.id, ...d.data() })));
 
       // Get only active sessions (isActive = true)
@@ -57,16 +50,14 @@ const Dashboard = () => {
         .map(d => ({ id: d.id, ...d.data() }))
         .filter(t => t.isActive === true);
       setActiveSessions(activeSessionsList);
-      console.log('✅ Active sessions:', activeSessionsList.length);
-      
-      console.log('✅ All dashboard data loaded');
     } catch (err) {
       console.error('❌ Dashboard fetch error:', err);
     }
   };
 
   useEffect(() => {
-    console.log('useEffect triggered. User:', user?.email);
+    if (!user || hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
     fetchData();
   }, [user]);
 

@@ -57,20 +57,21 @@ const StripePayment: React.FC<StripePaymentProps> = ({
           }),
         });
 
+        const data = await response.json();
+
         if (!response.ok) {
-          throw new Error('Failed to create payment intent');
+          throw new Error(data.error || 'Failed to create payment intent');
         }
 
-        const data = await response.json();
         setClientSecret(data.clientSecret);
       } catch (error) {
         console.error('Error creating payment intent:', error);
         // For local development without Netlify, show a helpful message
         if (import.meta.env.DEV) {
-          console.warn('⚠️  Netlify functions not available in local development');
+          console.warn('⚠️  Netlify functions not available in local development. Running: npm run dev');
           setError('DEV_MODE');
         } else {
-          setError('Erreur lors de la création du paiement. Veuillez réessayer.');
+          setError('Erreur de paiement. Veuillez vérifier votre connexion et réessayer.');
         }
       } finally {
         setLoading(false);

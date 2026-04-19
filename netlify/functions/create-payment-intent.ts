@@ -1,12 +1,21 @@
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
+// Validate Stripe key on startup
+const stripeKey = process.env.STRIPE_SECRET_KEY;
+if (!stripeKey) {
+  console.error('⚠️  STRIPE_SECRET_KEY not configured');
+}
+
+const stripe = new Stripe(stripeKey || '', {
+  apiVersion: '2024-04-10' as any,
+});
 
 export const handler = async (event: any) => {
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ error: 'Method not allowed' }),
     };
   }
@@ -18,6 +27,7 @@ export const handler = async (event: any) => {
     if (!amount || amount <= 0) {
       return {
         statusCode: 400,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ error: 'Invalid amount' }),
       };
     }
@@ -27,7 +37,6 @@ export const handler = async (event: any) => {
       amount: Math.round(amount),
       currency: currency,
       metadata: metadata || {},
-      // Automatically confirm payment for Stripe dashboard flow
       automatic_payment_methods: {
         enabled: true,
       },
@@ -45,9 +54,10 @@ export const handler = async (event: any) => {
       }),
     };
   } catch (error: any) {
-    console.error('Stripe error:', error);
+    console.error('Stripe error:', error.message || error);
     return {
       statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         error: error.message || 'Failed to create payment intent',
       }),
