@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Send, User as UserIcon, Calendar, ArrowLeft, MoreVertical, GraduationCap, MessageSquare, Sparkles } from 'lucide-react';
@@ -14,28 +14,67 @@ const Messaging = () => {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [activeChat, setActiveChat] = useState<any>(null);
+  const [senderInfo, setSenderInfo] = useState<{ [key: string]: any }>({});
+  const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!user) return;
-    const q = query(collection(db, 'chats'), where('participants', 'array-contains', user.uid));
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    const q = query(
+      collection(db, 'chats'),
+      where('participants', 'array-contains', user.uid)
+    );
     const unsubscribe = onSnapshot(q, (snap) => {
       const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       setChats(data);
+      setLoading(false);
+    }, (error) => {
+      console.error('Error fetching chats:', error);
+      setLoading(false);
     });
     return () => unsubscribe();
   }, [user]);
 
   useEffect(() => {
     if (!urlChatId) return;
-    const q = query(collection(db, 'chats', urlChatId, 'messages'), orderBy('createdAt', 'asc'));
-    const unsubscribe = onSnapshot(q, (snap) => {
-      setMessages(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    
+    // Load messages
+    const q = query(
+      collection(db, 'chats', urlChatId, 'messages'),
+      orderBy('createdAt', 'asc')
+    );
+    const unsubscribe = onSnapshot(q, async (snap) => {
+      const msgData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setMessages(msgData);
+
+      // Fetch sender info for all messages
+      const senderIds = new Set(msgData.map(m => m.senderId));
+      const newSenderInfo = { ...senderInfo };
+      
+      for (const senderId of senderIds) {
+        if (!newSenderInfo[senderId]) {
+          try {
+            const userDoc = await getDoc(doc(db, 'users', senderId));
+            if (userDoc.exists()) {
+              newSenderInfo[senderId] = userDoc.data();
+            }
+          } catch (err) {
+            console.error('Error fetching sender info:', err);
+          }
+        }
+      }
+      setSenderInfo(newSenderInfo);
+    }, (error) => {
+      console.error('Error fetching messages:', error);
     });
     
+    // Load chat info
     getDoc(doc(db, 'chats', urlChatId)).then(d => {
       if(d.exists()) setActiveChat({ id: d.id, ...d.data() });
-    });
+    }).catch(err => console.error('Error fetching chat:', err));
 
     return () => unsubscribe();
   }, [urlChatId]);
@@ -50,13 +89,45 @@ const Messaging = () => {
     const msg = newMessage;
     setNewMessage('');
     try {
+      // Add message
       await addDoc(collection(db, 'chats', urlChatId, 'messages'), {
         senderId: user.uid,
         text: msg,
         createdAt: serverTimestamp(),
       });
+
+      // Update chat's lastMessage and updatedAt
+      await updateDoc(doc(db, 'chats', urlChatId), {
+        lastMessage: msg,
+        updatedAt: serverTimestamp(),
+      });
     } catch (err) {
-      console.error(err);
+      console.error('Error sending message:', err);
+      alert('Failed to send message. Please try again.');
+    }
+  };
+
+  // Format timestamp function
+  const formatTimestamp = (timestamp: any) => {
+    if (!timestamp) return 'Just now';
+    
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      const now = new Date();
+      const diff = now.getTime() - date.getTime();
+      
+      const minutes = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+      
+      if (minutes < 1) return 'Just now';
+      if (minutes < 60) return `${minutes}m ago`;
+      if (hours < 24) return `${hours}h ago`;
+      if (days < 7) return `${days}d ago`;
+      
+      return date.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' });
+    } catch {
+      return 'Just now';
     }
   };
 
@@ -132,35 +203,66 @@ const Messaging = () => {
 
               {/* Messages */}
               <div className="flex-grow overflow-y-auto p-10 space-y-10 bg-gray-50/20 scrollbar-hide">
-                <div className="flex flex-col items-center justify-center py-12 text-center border-b border-dashed border-border-subtle mb-10 relative">
-                   <div className="absolute inset-0 bg-gradient-to-t from-white/10 to-transparent pointer-events-none" />
-                   <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center mb-4 shadow-sm border border-border-subtle">
-                      <Calendar className="w-8 h-8 text-primary" />
-                   </div>
-                   <p className="text-[11px] font-black uppercase tracking-[0.3em] text-text-muted">Enrolled on <span className="text-primary italic">{activeChat?.offerTitle}</span></p>
-                </div>
-                
-                {messages.map((m, idx) => (
-                  <div
-                    key={m.id || idx}
-                    className={`flex ${m.senderId === user?.uid ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div className={`max-w-[75%] group`}>
-                      <div
-                        className={`px-7 py-5 rounded-[28px] shadow-sm text-sm font-bold leading-relaxed transition-all group-hover:shadow-md ${
-                          m.senderId === user?.uid
-                            ? 'bg-primary text-white rounded-tr-none shadow-primary/20'
-                            : 'bg-surface text-text-main rounded-tl-none border border-border-subtle'
-                        }`}
-                      >
-                        {m.text}
+                {!loading ? (
+                  <>
+                    <div className="flex flex-col items-center justify-center py-12 text-center border-b border-dashed border-border-subtle mb-10 relative">
+                       <div className="absolute inset-0 bg-gradient-to-t from-white/10 to-transparent pointer-events-none" />
+                       <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center mb-4 shadow-sm border border-border-subtle">
+                          <Calendar className="w-8 h-8 text-primary" />
+                       </div>
+                       <p className="text-[11px] font-black uppercase tracking-[0.3em] text-text-muted">Enrolled on <span className="text-primary italic">{activeChat?.offerTitle}</span></p>
+                    </div>
+                    
+                    {messages.length === 0 && (
+                      <div className="text-center py-12">
+                        <MessageSquare className="w-12 h-12 text-text-muted/20 mx-auto mb-4" />
+                        <p className="text-[10px] text-text-muted uppercase font-black tracking-widest">No messages yet. Start the conversation!</p>
                       </div>
-                      <p className={`text-[9px] font-black uppercase tracking-widest mt-2 opacity-30 ${m.senderId === user?.uid ? 'text-right' : 'text-left'}`}>
-                         Just now
-                      </p>
+                    )}
+                    
+                    {messages.map((m, idx) => {
+                      const sender = senderInfo[m.senderId] || {};
+                      const senderName = sender.displayName || 'Unknown User';
+                      const isOwnMessage = m.senderId === user?.uid;
+                      
+                      return (
+                        <div
+                          key={m.id || idx}
+                          className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <div className={`max-w-[75%] group`}>
+                            {/* Sender info */}
+                            {!isOwnMessage && (
+                              <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-2 px-7">
+                                {senderName}
+                              </p>
+                            )}
+                            
+                            <div
+                              className={`px-7 py-5 rounded-[28px] shadow-sm text-sm font-bold leading-relaxed transition-all group-hover:shadow-md ${
+                                isOwnMessage
+                                  ? 'bg-primary text-white rounded-tr-none shadow-primary/20'
+                                  : 'bg-surface text-text-main rounded-tl-none border border-border-subtle'
+                              }`}
+                            >
+                              {m.text}
+                            </div>
+                            <p className={`text-[9px] font-black uppercase tracking-widest mt-2 opacity-40 ${isOwnMessage ? 'text-right' : 'text-left'}`}>
+                              {formatTimestamp(m.createdAt)}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-4" />
+                      <p className="text-text-muted text-sm font-bold uppercase tracking-wider">Loading messages...</p>
                     </div>
                   </div>
-                ))}
+                )}
                 <div ref={scrollRef} />
               </div>
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { auth } from '../lib/firebase';
-import { LogOut, User as UserIcon, MessageSquare, Shield, GraduationCap } from 'lucide-react';
+import { LogOut, User as UserIcon, MessageSquare, Shield, GraduationCap, Plus } from 'lucide-react';
 
 import { APP_LOGO } from '../lib/constants';
 
@@ -57,6 +57,15 @@ const Navbar = () => {
                     <span>Messagerie</span>
                   </Link>
                 </div>
+
+                {/* Create Talent Button for Trainers */}
+                <Link 
+                  to="/create-talent"
+                  className="hidden sm:flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-indigo-700 transition-all text-[10px] font-black uppercase tracking-widest"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden md:inline">Créer Talent</span>
+                </Link>
                 
                 {isAdmin && (
                   <Link to="/admin" className="text-text-muted hover:text-accent transition-colors flex items-center space-x-2">

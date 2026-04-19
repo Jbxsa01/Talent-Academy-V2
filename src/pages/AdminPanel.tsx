@@ -1,33 +1,54 @@
 import React, { useEffect, useState } from 'react';
 import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Shield, TrendingUp, Users, Package, Download, Search, MoreHorizontal, DollarSign, Database, CheckCircle, XCircle } from 'lucide-react';
-import { motion } from 'motion/react';
-import { doc, updateDoc, setDoc } from 'firebase/firestore';
+import { Shield, TrendingUp, Users, Package, Download, Search, MoreHorizontal, DollarSign, Database, CheckCircle, XCircle, MessageCircle, Star, Activity, BarChart3, Settings, Eye, Edit2, Trash2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { doc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
 
 const AdminPanel = () => {
-  const [stats, setStats] = useState({ totalSales: 0, totalUsers: 0, totalTalents: 0, commission: 0 });
+  const [stats, setStats] = useState({ totalSales: 0, totalUsers: 0, totalTalents: 0, commission: 0, totalChats: 0, totalReviews: 0, totalOffers: 0 });
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [talents, setTalents] = useState<any[]>([]);
+  const [chats, setChats] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'talents' | 'transactions' | 'chats' | 'reviews'>('overview');
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const fetchData = async () => {
-    const usersSnap = await getDocs(collection(db, 'users'));
-    const talentsSnap = await getDocs(collection(db, 'talents'));
-    const transSnap = await getDocs(collection(db, 'transactions'));
-    
-    const sales = transSnap.size * 120;
-    setStats({
-      totalSales: sales,
-      totalUsers: usersSnap.size,
-      totalTalents: talentsSnap.size,
-      commission: sales * 0.20
-    });
+    try {
+      const usersSnap = await getDocs(collection(db, 'users'));
+      const talentsSnap = await getDocs(collection(db, 'talents'));
+      const transSnap = await getDocs(collection(db, 'transactions'));
+      const chatsSnap = await getDocs(collection(db, 'chats'));
+      const reviewsSnap = await getDocs(collection(db, 'reviews'));
+      
+      let totalOffers = 0;
+      for (const talent of talentsSnap.docs) {
+        const offersSnap = await getDocs(collection(db, 'talents', talent.id, 'offers'));
+        totalOffers += offersSnap.size;
+      }
+      
+      const sales = transSnap.size * 120;
+      setStats({
+        totalSales: sales,
+        totalUsers: usersSnap.size,
+        totalTalents: talentsSnap.size,
+        commission: sales * 0.20,
+        totalChats: chatsSnap.size,
+        totalReviews: reviewsSnap.size,
+        totalOffers
+      });
 
-    setRecentTransactions(transSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-    setUsers(usersSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-    setTalents(talentsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setRecentTransactions(transSnap.docs.slice(-5).reverse().map(d => ({ id: d.id, ...d.data() })));
+      setUsers(usersSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setTalents(talentsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setChats(chatsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setReviews(reviewsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (err) {
+      console.error('Error fetching admin data:', err);
+    }
   };
 
   useEffect(() => {
@@ -81,6 +102,28 @@ const AdminPanel = () => {
     } catch (err) { console.error(err); }
   };
 
+  const deleteReview = async (id: string) => {
+    if (confirm('Delete this review permanently?')) {
+      try {
+        await deleteDoc(doc(db, 'reviews', id));
+        await fetchData();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  const deleteUser = async (id: string) => {
+    if (confirm('Delete this user permanently? This cannot be undone.')) {
+      try {
+        await deleteDoc(doc(db, 'users', id));
+        await fetchData();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
   const exportData = () => {
     // Simulated export
     const data = JSON.stringify({ stats, recentTransactions, users }, null, 2);
@@ -94,6 +137,7 @@ const AdminPanel = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">
+      {/* Header */}
       <div className="flex items-center justify-between mb-12">
         <div className="flex items-center space-x-6">
           <div className="w-14 h-14 bg-indigo-50 border border-primary/20 rounded-2xl flex items-center justify-center shadow-sm">
@@ -120,7 +164,7 @@ const AdminPanel = () => {
             className="bg-surface border border-border-subtle text-text-main px-8 py-3.5 rounded-xl font-bold flex items-center space-x-3 hover:bg-gray-50 transition-all shadow-sm active:scale-95"
           >
             <Download className="w-4 h-4 text-primary" />
-            <span>Generate Data Dump</span>
+            <span>Export Data</span>
           </button>
         </div>
       </div>
@@ -129,9 +173,9 @@ const AdminPanel = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-16">
         {[
           { label: 'Gross Sales', value: `${stats.totalSales} DHS`, sub: 'Direct Revenue', icon: TrendingUp, color: 'text-success', bg: 'bg-green-50' },
-          { label: 'Platform Fee', value: `${stats.commission} DHS`, sub: '20% Reserved', icon: DollarSign, color: 'text-primary', bg: 'bg-blue-50' },
+          { label: 'Platform Fee', value: `${stats.commission.toFixed(0)} DHS`, sub: '20% Reserved', icon: DollarSign, color: 'text-primary', bg: 'bg-blue-50' },
           { label: 'Academy Members', value: stats.totalUsers, sub: 'Verified Scholars', icon: Users, color: 'text-accent', bg: 'bg-pink-50' },
-          { label: 'Talent Catalog', value: stats.totalTalents, sub: 'Session Types', icon: Package, color: 'text-warning', bg: 'bg-amber-50' },
+          { label: 'Talent Catalog', value: stats.totalTalents, sub: `${stats.totalOffers} Sessions`, icon: Package, color: 'text-warning', bg: 'bg-amber-50' },
         ].map((item, i) => (
           <motion.div
             key={i}
@@ -150,14 +194,105 @@ const AdminPanel = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-        {/* User Table */}
-        <div className="lg:col-span-2 bg-surface rounded-3xl border border-border-subtle overflow-hidden shadow-sm">
+      {/* Tab Navigation */}
+      <div className="flex space-x-2 mb-8 p-2 bg-surface rounded-2xl border border-border-subtle w-fit">
+        {(['overview', 'users', 'talents', 'transactions', 'chats', 'reviews'] as const).map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all ${
+              activeTab === tab 
+                ? 'bg-primary text-white shadow-lg shadow-primary/20' 
+                : 'text-text-muted hover:text-text-main'
+            }`}
+          >
+            {tab === 'overview' ? '📊 Vue d\'ensemble' :
+             tab === 'users' ? '👥 Utilisateurs' :
+             tab === 'talents' ? '🎓 Talents' :
+             tab === 'transactions' ? '💳 Transactions' :
+             tab === 'chats' ? '💬 Messages' : '⭐ Avis'}
+          </button>
+        ))}
+      </div>
+
+      {/* Overview Tab */}
+      {activeTab === 'overview' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Transactions */}
+          <div className="lg:col-span-2 bg-surface rounded-3xl border border-border-subtle overflow-hidden shadow-sm">
+            <div className="p-8 border-b border-border-subtle bg-gray-50/50">
+              <h2 className="text-xl font-black text-text-main tracking-tight italic">Order Stream</h2>
+            </div>
+            <div className="p-8 space-y-6">
+              {recentTransactions.map(t => (
+                <div key={t.id} className="flex items-center justify-between group p-4 hover:bg-gray-50/30 rounded-xl transition-all">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-11 h-11 bg-green-50 rounded-xl flex items-center justify-center group-hover:bg-success transition-all shadow-sm">
+                      <TrendingUp className="w-5 h-5 text-success group-hover:text-white transition-colors" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-text-main mb-0.5">Success</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">120 DHS Received</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-text-muted opacity-40">Just now</p>
+                  </div>
+                </div>
+              ))}
+              {recentTransactions.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-12 opacity-20">
+                  <Package className="w-12 h-12 mb-3" />
+                  <p className="text-xs font-black uppercase tracking-widest">No transaction flow</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Stats */}
+          <div className="space-y-6">
+            <div className="bg-surface rounded-3xl border border-border-subtle p-8 shadow-sm">
+              <h3 className="text-sm font-black text-text-main tracking-tight mb-6 italic">Quick Stats</h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between py-3 border-b border-border-subtle">
+                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Active Chats</span>
+                  <span className="text-lg font-black text-primary">{stats.totalChats}</span>
+                </div>
+                <div className="flex items-center justify-between py-3 border-b border-border-subtle">
+                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Total Reviews</span>
+                  <span className="text-lg font-black text-primary">{stats.totalReviews}</span>
+                </div>
+                <div className="flex items-center justify-between py-3">
+                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Total Offers</span>
+                  <span className="text-lg font-black text-primary">{stats.totalOffers}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-primary to-indigo-600 rounded-3xl p-8 shadow-lg shadow-primary/20 text-white">
+              <h3 className="text-sm font-black tracking-tight mb-4 italic">Commission Info</h3>
+              <p className="text-[10px] font-bold opacity-90 mb-6 leading-relaxed">20% of all sales are automatically held in escrow for the school administration.</p>
+              <div className="bg-white/10 rounded-xl p-4 backdrop-blur-sm border border-white/20">
+                <p className="text-[9px] font-bold uppercase tracking-wider opacity-80 mb-2">Platform Balance</p>
+                <p className="text-2xl font-black">{stats.commission.toFixed(0)} DHS</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Users Tab */}
+      {activeTab === 'users' && (
+        <div className="bg-surface rounded-3xl border border-border-subtle overflow-hidden shadow-sm">
           <div className="p-8 border-b border-border-subtle flex items-center justify-between bg-gray-50/50">
             <h2 className="text-xl font-black text-text-main tracking-tight italic">Academy Members</h2>
             <div className="relative">
-               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-3.5 h-3.5" />
-               <input placeholder="Search directory..." className="bg-white border border-border-subtle rounded-lg py-2 pl-9 pr-4 text-[11px] font-semibold focus:outline-none focus:ring-2 ring-primary/10" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-3.5 h-3.5" />
+              <input 
+                placeholder="Search users..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-white border border-border-subtle rounded-lg py-2 pl-9 pr-4 text-[11px] font-semibold focus:outline-none focus:ring-2 ring-primary/10"
+              />
             </div>
           </div>
           <div className="overflow-x-auto">
@@ -167,11 +302,11 @@ const AdminPanel = () => {
                   <th className="px-8 py-5">Full Identity</th>
                   <th className="px-8 py-5">Access Roles</th>
                   <th className="px-8 py-5">Verification</th>
-                  <th className="px-8 py-5">Set Admin</th>
+                  <th className="px-8 py-5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-subtle">
-                {users.map(u => (
+                {users.filter(u => u.displayName?.toLowerCase().includes(searchTerm.toLowerCase())).map(u => (
                   <tr key={u.id} className="hover:bg-gray-50/30 transition-colors group">
                     <td className="px-8 py-6">
                       <div className="flex items-center space-x-4">
@@ -199,14 +334,21 @@ const AdminPanel = () => {
                         <span>Valid</span>
                       </span>
                     </td>
-                    <td className="px-8 py-6 text-right">
+                    <td className="px-8 py-6 text-right space-x-2">
                       <button 
                         onClick={() => toggleRole(u.id, u.roles || [], 'admin')}
-                        className={`text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-lg transition-all border ${
+                        className={`text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg transition-all border inline-block ${
                           u.roles?.includes('admin') ? 'bg-indigo-50 text-primary border-primary' : 'bg-surface border-border-subtle text-text-muted hover:bg-gray-50'
                         }`}
                       >
-                         {u.roles?.includes('admin') ? 'Revoke Admin' : 'Make Admin'}
+                        {u.roles?.includes('admin') ? 'Revoke' : 'Admin'}
+                      </button>
+                      <button 
+                        onClick={() => deleteUser(u.id)}
+                        className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg transition-all border border-border-subtle text-danger hover:bg-red-50 inline-block"
+                      >
+                        <Trash2 className="w-3 h-3 inline mr-1" />
+                        Delete
                       </button>
                     </td>
                   </tr>
@@ -215,114 +357,177 @@ const AdminPanel = () => {
             </table>
           </div>
         </div>
+      )}
 
-        {/* Recent Transactions */}
-        <div className="bg-surface rounded-3xl border border-border-subtle overflow-hidden shadow-sm flex flex-col">
-           <div className="p-8 border-b border-border-subtle bg-gray-50/50">
-              <h2 className="text-xl font-black text-text-main tracking-tight italic">Order Stream</h2>
-           </div>
-           <div className="p-8 space-y-8 flex-grow">
-             {recentTransactions.map(t => (
-               <div key={t.id} className="flex items-center justify-between group">
-                 <div className="flex items-center space-x-4">
-                    <div className="w-11 h-11 bg-green-50 rounded-xl flex items-center justify-center group-hover:bg-success transition-all shadow-sm">
-                       <TrendingUp className="w-5 h-5 text-success group-hover:text-white transition-colors" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-text-main mb-0.5">Success</p>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">120 DHS Received</p>
-                    </div>
-                 </div>
-                 <div className="text-right">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-text-muted opacity-40">Just now</p>
-                 </div>
-               </div>
-             ))}
-             {recentTransactions.length === 0 && (
-               <div className="flex flex-col items-center justify-center h-full opacity-20 py-12">
-                 <Package className="w-12 h-12 mb-3" />
-                 <p className="text-xs font-black uppercase tracking-widest">No transaction flow</p>
-               </div>
-             )}
-           </div>
-           <div className="p-8 bg-gray-50/50 border-t border-border-subtle">
-              <p className="text-[10px] font-bold text-text-muted leading-relaxed">
-                Platform fee of 20% is automatically deducted and held in the school escrow account.
-              </p>
-           </div>
-        </div>
-      </div>
-
-      {/* Talent Moderation Section */}
-      <div className="bg-surface rounded-3xl border border-border-subtle overflow-hidden shadow-sm">
-        <div className="p-8 border-b border-border-subtle flex items-center justify-between bg-gray-50/50">
-          <h2 className="text-xl font-black text-text-main tracking-tight italic">Talent Moderation Queue</h2>
-          <span className="text-[10px] font-black px-3 py-1 bg-amber-50 text-warning rounded-full border border-warning/10 uppercase tracking-widest animate-pulse">Pending Review</span>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-gray-50/80 text-[10px] font-black uppercase tracking-widest text-text-muted">
-                <th className="px-8 py-5">Talent Info</th>
-                <th className="px-8 py-5">Category</th>
-                <th className="px-8 py-5">Status</th>
-                <th className="px-8 py-5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border-subtle">
-              {talents.map(t => (
-                <tr key={t.id} className="hover:bg-gray-50/30 transition-colors group">
-                  <td className="px-8 py-6">
-                    <div className="flex items-center space-x-4">
-                      <img src={t.imageUrl} alt="" className="w-14 h-10 object-cover rounded-lg border border-border-subtle shadow-sm" referrerPolicy="no-referrer" />
-                      <div>
-                        <p className="text-sm font-bold text-text-main leading-tight mb-1">{t.title}</p>
-                        <p className="text-[10px] font-bold text-text-muted tracking-tight italic">by {t.trainerName}</p>
+      {/* Talents Tab */}
+      {activeTab === 'talents' && (
+        <div className="bg-surface rounded-3xl border border-border-subtle overflow-hidden shadow-sm">
+          <div className="p-8 border-b border-border-subtle flex items-center justify-between bg-gray-50/50">
+            <h2 className="text-xl font-black text-text-main tracking-tight italic">Talent Moderation Queue</h2>
+            <span className="text-[10px] font-black px-3 py-1 bg-amber-50 text-warning rounded-full border border-warning/10 uppercase tracking-widest animate-pulse">Pending Review</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-gray-50/80 text-[10px] font-black uppercase tracking-widest text-text-muted">
+                  <th className="px-8 py-5">Talent Info</th>
+                  <th className="px-8 py-5">Category</th>
+                  <th className="px-8 py-5">Status</th>
+                  <th className="px-8 py-5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border-subtle">
+                {talents.map(t => (
+                  <tr key={t.id} className="hover:bg-gray-50/30 transition-colors group">
+                    <td className="px-8 py-6">
+                      <div className="flex items-center space-x-4">
+                        <img src={t.imageUrl} alt="" className="w-14 h-10 object-cover rounded-lg border border-border-subtle shadow-sm" referrerPolicy="no-referrer" />
+                        <div>
+                          <p className="text-sm font-bold text-text-main leading-tight mb-1">{t.title}</p>
+                          <p className="text-[10px] font-bold text-text-muted tracking-tight italic">by {t.trainerName}</p>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-8 py-6">
-                    <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 bg-indigo-50 text-primary rounded border border-primary/10">
-                      {t.category}
-                    </span>
-                  </td>
-                  <td className="px-8 py-6">
-                    {t.status === 'approved' ? (
-                      <span className="flex items-center space-x-2 text-[10px] font-black uppercase tracking-widest text-success">
-                        <CheckCircle className="w-4 h-4" />
-                        <span>Live on Site</span>
+                    </td>
+                    <td className="px-8 py-6">
+                      <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 bg-indigo-50 text-primary rounded border border-primary/10">
+                        {t.category}
                       </span>
-                    ) : (
-                      <span className="flex items-center space-x-2 text-[10px] font-black uppercase tracking-widest text-warning">
-                        <MoreHorizontal className="w-4 h-4" />
-                        <span>Pending Approval</span>
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-8 py-6 text-right space-x-3">
-                    {t.status !== 'approved' && (
-                      <button 
-                        onClick={() => approveTalent(t.id)}
-                        className="bg-success text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-green-600 transition-all shadow-lg shadow-green-500/10"
-                      >
-                         Approve
+                    </td>
+                    <td className="px-8 py-6">
+                      {t.status === 'approved' ? (
+                        <span className="flex items-center space-x-2 text-[10px] font-black uppercase tracking-widest text-success">
+                          <CheckCircle className="w-4 h-4" />
+                          <span>Live on Site</span>
+                        </span>
+                      ) : (
+                        <span className="flex items-center space-x-2 text-[10px] font-black uppercase tracking-widest text-warning">
+                          <MoreHorizontal className="w-4 h-4" />
+                          <span>Pending Approval</span>
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-8 py-6 text-right space-x-2">
+                      {t.status !== 'approved' && (
+                        <button 
+                          onClick={() => approveTalent(t.id)}
+                          className="bg-success text-white px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-green-600 transition-all shadow-lg shadow-green-500/10 inline-block"
+                        >
+                          <CheckCircle className="w-3 h-3 inline mr-1" />
+                          Approve
+                        </button>
+                      )}
+                      <button className="bg-gray-100 text-text-muted px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-red-50 hover:text-danger transition-all inline-block">
+                        <XCircle className="w-3 h-3 inline mr-1" />
+                        Reject
                       </button>
-                    )}
-                    <button className="bg-gray-100 text-text-muted px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-red-50 hover:text-danger transition-all">
-                       Reject
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {talents.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-8 py-20 text-center opacity-30 italic font-bold text-text-muted uppercase tracking-[0.4em]">No talents to moderate</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Transactions Tab */}
+      {activeTab === 'transactions' && (
+        <div className="bg-surface rounded-3xl border border-border-subtle overflow-hidden shadow-sm">
+          <div className="p-8 border-b border-border-subtle bg-gray-50/50">
+            <h2 className="text-xl font-black text-text-main tracking-tight italic">Transaction History</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-gray-50/80 text-[10px] font-black uppercase tracking-widest text-text-muted">
+                  <th className="px-8 py-5">Transaction ID</th>
+                  <th className="px-8 py-5">Learner</th>
+                  <th className="px-8 py-5">Amount</th>
+                  <th className="px-8 py-5">Commission</th>
+                  <th className="px-8 py-5">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border-subtle">
+                {recentTransactions.map(t => (
+                  <tr key={t.id} className="hover:bg-gray-50/30 transition-colors">
+                    <td className="px-8 py-6 text-[10px] font-mono text-text-muted">{t.id?.slice(0, 8)}</td>
+                    <td className="px-8 py-6 text-sm font-bold text-text-main">{t.learnerId?.slice(0, 6)}</td>
+                    <td className="px-8 py-6 text-sm font-black text-primary">{t.amount} DHS</td>
+                    <td className="px-8 py-6 text-sm font-black text-success">{(t.amount * 0.2).toFixed(0)} DHS</td>
+                    <td className="px-8 py-6">
+                      <span className="text-[9px] font-black uppercase tracking-widest px-2 py-1 bg-green-50 text-success rounded border border-success/10">
+                        Completed
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Chats Tab */}
+      {activeTab === 'chats' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {chats.map(chat => (
+            <div key={chat.id} className="bg-surface rounded-3xl border border-border-subtle p-8 shadow-sm hover:border-primary transition-all">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-black text-text-main italic">{chat.talentTitle}</h3>
+                <MessageCircle className="w-5 h-5 text-primary" />
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between py-2 border-b border-border-subtle pb-2">
+                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Participants</span>
+                  <span className="text-sm font-black text-text-main">{chat.participants?.length || 2}</span>
+                </div>
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Last Message</span>
+                  <p className="text-[10px] text-text-muted text-right italictruncate max-w-[150px]">{chat.lastMessage?.slice(0, 30)}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Reviews Tab */}
+      {activeTab === 'reviews' && (
+        <div className="space-y-6">
+          {reviews.map(review => (
+            <div key={review.id} className="bg-surface rounded-3xl border border-border-subtle p-8 shadow-sm hover:border-primary transition-all">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center font-black text-[11px] text-primary">
+                    {review.learnerId?.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm font-black text-text-main">Learner Review</p>
+                    <div className="flex space-x-1 mt-1">
+                      {[...Array(review.rating || 5)].map((_, i) => (
+                        <Star key={i} className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => deleteReview(review.id)}
+                  className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg transition-all border border-border-subtle text-danger hover:bg-red-50"
+                >
+                  <Trash2 className="w-3 h-3 inline mr-1" />
+                  Remove
+                </button>
+              </div>
+              <p className="text-text-muted text-sm leading-relaxed">{review.comment}</p>
+            </div>
+          ))}
+          {reviews.length === 0 && (
+            <div className="text-center py-20 opacity-30">
+              <Star className="w-12 h-12 mx-auto mb-4" />
+              <p className="text-[10px] text-text-muted uppercase font-black tracking-widest">No reviews yet</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

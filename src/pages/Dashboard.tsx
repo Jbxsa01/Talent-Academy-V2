@@ -3,7 +3,7 @@ import { collection, query, where, getDocs, addDoc, updateDoc, doc, deleteDoc } 
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { Plus, LayoutGrid, GraduationCap, TrendingUp, Award, Users, Clock, Eye, MessageSquare, Star, Edit2, Trash2, X, Upload, Loader2, Settings, LogOut, Download, Filter, Search, CheckCircle2, Camera } from 'lucide-react';
+import { Plus, LayoutGrid, GraduationCap, TrendingUp, Award, Users, Clock, Eye, MessageSquare, Star, Edit2, Trash2, X, Upload, Loader2, Settings, LogOut, Download, Filter, Search, CheckCircle2, Camera, Radio, Activity, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
@@ -12,13 +12,14 @@ import { useNavigate } from 'react-router-dom';
 const Dashboard = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'overview' | 'learning' | 'training'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'learning' | 'training' | 'active-sessions'>('overview');
   const [learningTalents, setLearningTalents] = useState<any[]>([]);
   const [trainingTalents, setTrainingTalents] = useState<any[]>([]);
+  const [activeSessions, setActiveSessions] = useState<any[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [formData, setFormData] = useState({ title: '', category: 'Coding', description: '', imageUrl: '', skills: '', price: '' });
+  const [formData, setFormData] = useState({ title: '', category: 'Coding', description: '', imageUrl: '', skills: '', price: '', isActive: false });
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const [isUploading, setIsUploading] = useState(false);
   const [customCategory, setCustomCategory] = useState('');
@@ -50,6 +51,13 @@ const Dashboard = () => {
       const snapTraining = await getDocs(qTraining);
       console.log('✅ Training talents:', snapTraining.docs.length);
       setTrainingTalents(snapTraining.docs.map(d => ({ id: d.id, ...d.data() })));
+
+      // Get only active sessions (isActive = true)
+      const activeSessionsList = snapTraining.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(t => t.isActive === true);
+      setActiveSessions(activeSessionsList);
+      console.log('✅ Active sessions:', activeSessionsList.length);
       
       console.log('✅ All dashboard data loaded');
     } catch (err) {
@@ -111,6 +119,19 @@ const Dashboard = () => {
     }
   };
 
+  const toggleSessionActive = async (talentId: string, currentStatus: boolean) => {
+    try {
+      await updateDoc(doc(db, 'talents', talentId), { 
+        isActive: !currentStatus,
+        updatedAt: new Date().toISOString()
+      });
+      fetchData();
+    } catch (err) {
+      console.error('Error toggling session:', err);
+      alert('Erreur lors de la modification de la session');
+    }
+  };
+
   const openEdit = (talent: any) => {
     setIsEditing(talent);
     setCustomCategory('');
@@ -120,7 +141,8 @@ const Dashboard = () => {
       description: talent.description,
       imageUrl: talent.imageUrl,
       skills: talent.skills?.join(', ') || '',
-      price: talent.price || ''
+      price: talent.price || '',
+      isActive: talent.isActive || false
     });
     setIsCreating(true);
   };
@@ -194,16 +216,17 @@ const Dashboard = () => {
         </div>
 
         {/* Tabs */}
-        <div className="max-w-7xl mx-auto px-6 flex border-t border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 flex border-t border-gray-200 overflow-x-auto">
           {[
             { key: 'overview', label: 'Aperçu', icon: LayoutGrid },
             { key: 'training', label: 'Mes Talents', icon: Award },
+            { key: 'active-sessions', label: 'Sessions Actives', icon: Radio, badge: activeSessions.length },
             { key: 'learning', label: 'Mes Parcours', icon: GraduationCap }
-          ].map(({ key, label, icon: Icon }) => (
+          ].map(({ key, label, icon: Icon, badge }) => (
             <button
               key={key}
               onClick={() => setActiveTab(key as any)}
-              className={`px-6 py-4 font-bold text-sm uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 ${
+              className={`px-6 py-4 font-bold text-sm uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
                 activeTab === key
                   ? 'border-primary text-primary'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -211,6 +234,11 @@ const Dashboard = () => {
             >
               <Icon className="w-4 h-4" />
               {label}
+              {badge !== undefined && badge > 0 && (
+                <span className="ml-2 bg-primary text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+                  {badge}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -400,7 +428,7 @@ const Dashboard = () => {
 
                     {/* Footer */}
                     <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <div className="flex items-center gap-1">
                           {[...Array(5)].map((_, i) => (
                             <Star
@@ -413,13 +441,31 @@ const Dashboard = () => {
                         </div>
                         <span className="text-xs text-gray-500">({talent.reviewCount})</span>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-                        talent.status === 'approved'
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-yellow-100 text-yellow-700'
-                      }`}>
-                        {talent.status === 'approved' ? 'En ligne' : 'Vérification'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {talent.isActive && (
+                          <span className="flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded-full text-[10px] font-bold uppercase tracking-wider animate-pulse">
+                            <Radio className="w-3 h-3" />
+                            Live
+                          </span>
+                        )}
+                        <button
+                          onClick={() => toggleSessionActive(talent.id, talent.isActive || false)}
+                          className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
+                            talent.isActive
+                              ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          {talent.isActive ? 'Actif' : 'Inactif'}
+                        </button>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                          talent.status === 'approved'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {talent.status === 'approved' ? 'En ligne' : 'Vérification'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </motion.div>
@@ -433,6 +479,92 @@ const Dashboard = () => {
                 >
                   Publier votre premier talent
                 </button>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Sessions Actives */}
+      {activeTab === 'active-sessions' && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+          {/* Active Sessions Grid */}
+          <div>
+            <h2 className="text-2xl font-black text-gray-900 mb-6 flex items-center gap-3">
+              <Radio className="w-6 h-6 text-red-500 animate-pulse" />
+              Sessions En Cours ({activeSessions.length})
+            </h2>
+            
+            {activeSessions.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {activeSessions.map((session, idx) => (
+                  <motion.div
+                    key={session.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                    className="bg-gradient-to-br from-red-50 to-orange-50 p-8 rounded-3xl border-2 border-red-200 shadow-lg shadow-red-100/30 relative overflow-hidden group"
+                  >
+                    {/* Live Badge */}
+                    <div className="absolute top-4 right-4 flex items-center gap-2 bg-red-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider animate-pulse">
+                      <Radio className="w-3 h-3" />
+                      Live
+                    </div>
+
+                    {/* Image */}
+                    <img
+                      src={session.imageUrl}
+                      alt={session.title}
+                      referrerPolicy="no-referrer"
+                      className="w-full h-40 object-cover rounded-2xl mb-6 group-hover:scale-105 transition-transform"
+                      onError={() => handleImageError(session.id)}
+                    />
+
+                    {/* Content */}
+                    <h3 className="text-lg font-black text-gray-900 mb-3 italic line-clamp-2">{session.title}</h3>
+                    
+                    <div className="space-y-3 mb-6">
+                      <div className="flex items-center gap-2 text-sm text-gray-700">
+                        <LayoutGrid className="w-4 h-4 text-primary" />
+                        <span className="font-bold">{session.category}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-700">
+                        <Users className="w-4 h-4 text-primary" />
+                        <span className="font-bold">Mentor: {session.trainerName}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-700">
+                        <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                        <span className="font-bold">{session.rating || 5}.0 / 5.0</span>
+                      </div>
+                    </div>
+
+                    {/* Description */}
+                    <p className="text-gray-700 text-sm mb-6 line-clamp-2">{session.description}</p>
+
+                    {/* Buttons */}
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => toggleSessionActive(session.id, true)}
+                        className="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-bold text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2"
+                      >
+                        <Zap className="w-4 h-4" />
+                        Arrêter
+                      </button>
+                      <button
+                        onClick={() => navigate(`/talent/${session.id}`)}
+                        className="flex-1 bg-white hover:bg-gray-50 border-2 border-gray-300 text-gray-900 px-4 py-2 rounded-xl font-bold text-sm uppercase tracking-wider transition-all"
+                      >
+                        Voir
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white p-12 rounded-3xl border-2 border-dashed border-gray-300 text-center">
+                <Radio className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500 font-bold text-lg mb-4">Aucune session active</p>
+                <p className="text-gray-400 text-sm mb-6">Activez vos talents pour les rendre visibles aux apprenants</p>
               </div>
             )}
           </div>
@@ -621,6 +753,27 @@ const Dashboard = () => {
                   placeholder="React, JavaScript, TypeScript"
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
                 />
+              </div>
+
+              {/* Active Session Toggle */}
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="isActive"
+                  checked={formData.isActive}
+                  onChange={e => setFormData({...formData, isActive: e.target.checked})}
+                  className="w-5 h-5 rounded border-gray-300 cursor-pointer accent-primary"
+                />
+                <label htmlFor="isActive" className="flex-1 cursor-pointer">
+                  <p className="font-black text-gray-900 uppercase text-sm tracking-wider">Activer cette session</p>
+                  <p className="text-xs text-gray-600 mt-1">La rendre visible et accessible aux apprenants en ce moment</p>
+                </label>
+                {formData.isActive && (
+                  <div className="flex items-center gap-1 bg-red-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase animate-pulse">
+                    <Radio className="w-3 h-3" />
+                    Live
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3 pt-2">

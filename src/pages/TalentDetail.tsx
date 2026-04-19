@@ -3,8 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, collection, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { Star, Clock, CheckCircle2, MessageSquare, CreditCard, ArrowLeft, LayoutGrid } from 'lucide-react';
+import { Star, Clock, Users, CheckCircle2, MessageSquare, CreditCard, ArrowLeft, LayoutGrid, Radio, Zap, Award, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import StripePayment from '../components/StripePayment';
+import FollowTalentButton from '../components/FollowTalentButton';
 
 const TalentDetail = () => {
   const { id } = useParams();
@@ -14,6 +16,8 @@ const TalentDetail = () => {
   const [offers, setOffers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
+  const [showStripe, setShowStripe] = useState(false);
+  const [selectedOffer, setSelectedOffer] = useState<any>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -36,178 +40,291 @@ const TalentDetail = () => {
 
   const handlePurchase = async (offer: any) => {
     if (!user) return navigate('/login');
+    setSelectedOffer(offer);
+    setShowStripe(true);
+  };
+
+  const handlePaymentSuccess = async (paymentIntentId: string) => {
+    if (!user || !talent || !selectedOffer) return;
+    
     setPurchasing(true);
     try {
-      // Simulate Payment Flow
       const transactionData = {
         learnerId: user.uid,
         trainerId: talent.trainerId,
-        offerId: offer.id,
+        offerId: selectedOffer.id,
+        talentId: talent.id,
         amount: 120,
         commission: 24,
         status: 'completed',
+        paymentIntentId,
         createdAt: new Date().toISOString(),
       };
       
-      const transRef = await addDoc(collection(db, 'transactions'), transactionData);
+      await addDoc(collection(db, 'transactions'), transactionData);
 
-      // Create Chat
       const chatData = {
         participants: [user.uid, talent.trainerId],
-        offerId: offer.id,
-        offerTitle: offer.title,
+        offerId: selectedOffer.id,
+        offerTitle: selectedOffer.title,
         talentTitle: talent.title,
+        talentId: talent.id,
         updatedAt: new Date().toISOString(),
-        lastMessage: 'Chat unlocked! Send a message to get started.',
+        lastMessage: '✅ Paiement confirmé! Chat ouvert. Envoyez un message pour commencer.',
       };
       const chatRef = await addDoc(collection(db, 'chats'), chatData);
 
+      setShowStripe(false);
       navigate(`/messaging/${chatRef.id}`);
     } catch (err) {
-      console.error(err);
-      alert('Purchase failed. Please try again.');
+      console.error('Error after payment:', err);
+      alert('Erreur lors de la création de la session. Contactez le support.');
     } finally {
       setPurchasing(false);
     }
   };
 
-  if (loading) return <div className="h-screen flex items-center justify-center text-primary font-black animate-pulse uppercase tracking-[0.5em]">Initialisation du Portail...</div>;
-  if (!talent) return <div className="text-center py-20 font-black uppercase tracking-widest opacity-20 italic">Talent introuvable.</div>;
+  if (loading) return (
+    <div className="h-screen flex items-center justify-center">
+      <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2 }} className="text-primary">
+        <BookOpen className="w-12 h-12" />
+      </motion.div>
+    </div>
+  );
+  if (!talent) return (
+    <div className="h-screen flex items-center justify-center">
+      <div className="text-center">
+        <p className="text-text-muted text-lg">Talent introuvable</p>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
-        {/* Left Col: Info */}
-        <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}>
-          <div className="relative aspect-[16/10] rounded-3xl overflow-hidden mb-10 shadow-2xl shadow-indigo-500/10 border border-border-subtle">
-            <img
-              src={talent.imageUrl}
-              className="w-full h-full object-cover"
-              alt={talent.title}
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute top-6 left-6">
-               <span className="bg-white/90 backdrop-blur px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest text-primary shadow-sm border border-primary/10">
-                {talent.category}
-              </span>
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      {/* Header avec bouton retour */}
+      <div className="sticky top-20 z-40 bg-white/80 backdrop-blur border-b border-slate-200">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center gap-4">
+          <button
+            onClick={() => navigate(-1)}
+            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 text-text-muted" />
+          </button>
+          <div className="flex-1 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-text-muted font-bold uppercase tracking-wider">{talent.category}</p>
+              <h1 className="text-2xl font-bold text-text-main line-clamp-1">{talent.title}</h1>
             </div>
+            <FollowTalentButton talentId={talent.id} size="lg" showLabel={true} />
           </div>
+        </div>
+      </div>
 
-          <h1 className="text-5xl md:text-6xl font-black text-text-main mb-6 leading-[0.9] tracking-tighter italic">
-            {talent.title}
-          </h1>
-          
-          <div className="flex items-center space-x-12 mb-10 pb-8 border-b border-border-subtle">
-            <div className="flex flex-col">
-              <span className="text-[10px] text-text-muted uppercase font-black tracking-[0.2em] mb-2 font-mono">Mentor HESTIM</span>
-              <span className="text-xl font-black text-text-main italic">{talent.trainerName || 'Hestim Mentor'}</span>
+      {/* Live Banner */}
+      {talent.isActive && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-6xl mx-auto px-6 mb-8 bg-gradient-to-r from-red-500 to-red-600 rounded-2xl p-6 text-white shadow-lg shadow-red-500/20"
+        >
+          <div className="flex items-center gap-4">
+            <div className="bg-white/20 backdrop-blur p-3 rounded-xl">
+              <Radio className="w-5 h-5 animate-pulse text-red-100" />
             </div>
-            <div className="flex flex-col border-l border-border-subtle pl-12">
-              <span className="text-[10px] text-text-muted uppercase font-black tracking-[0.2em] mb-2 font-mono">Note Académique</span>
-              <div className="flex items-center space-x-2">
-                 <Star className="w-6 h-6 fill-yellow-400 text-yellow-400" />
-                 <span className="text-2xl font-black text-text-main tabular-nums">{talent.rating?.toFixed(1) || '5.0'}</span>
-              </div>
+            <div>
+              <p className="font-bold text-sm uppercase tracking-widest">🔴 Session en direct</p>
+              <p className="text-sm text-red-100 mt-1">Cette formation est actuellement en cours. Rejoignez maintenant!</p>
             </div>
-          </div>
-
-          <div className="prose prose-indigo max-w-none">
-            <p className="text-text-muted text-lg leading-relaxed whitespace-pre-wrap font-medium">
-              {talent.description}
-            </p>
           </div>
         </motion.div>
+      )}
 
-        {/* Right Col: Offers */}
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
-          <div className="bg-primary text-white p-10 rounded-[40px] shadow-2xl shadow-primary/30 relative overflow-hidden group">
-            <div className="relative z-10">
-              <div className="flex items-center space-x-3 mb-3">
-                <LayoutGrid className="w-6 h-6 text-indigo-100" />
-                <h2 className="text-2xl font-black uppercase tracking-tighter italic">Offres Actives</h2>
-              </div>
-              <p className="text-indigo-100 text-sm font-medium leading-relaxed">Inscrivez-vous pour débloquer l'accès direct au mentor et aux ressources HESTIM.</p>
-            </div>
-            <div className="absolute -top-10 -right-10 w-48 h-48 bg-white/10 rounded-full group-hover:scale-125 transition-all duration-700" />
-          </div>
-
-          <div className="grid gap-4">
-            {offers.map((offer) => (
-              <div
-                key={offer.id}
-                className="bg-surface p-6 rounded-2xl border border-border-subtle hover:border-primary transition-all group relative shadow-sm hover:shadow-lg"
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-xl font-black text-text-main group-hover:text-primary transition-colors tracking-tight">{offer.title}</h3>
-                    <div className="flex items-center space-x-2 text-text-muted mt-1">
-                      <Clock className="w-4 h-4" />
-                      <span className="text-[10px] font-black uppercase tracking-widest">{offer.duration} session</span>
-                    </div>
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto px-6 py-12">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="grid grid-cols-1 lg:grid-cols-3 gap-12"
+        >
+          {/* Left: Image & Info */}
+          <div className="lg:col-span-2 space-y-12">
+            {/* Hero Image */}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+              <div className="relative aspect-video bg-slate-200 rounded-[28px] overflow-hidden shadow-xl border border-slate-200">
+                {talent.imageUrl && (
+                  <img
+                    src={talent.imageUrl}
+                    alt={talent.title}
+                    className="w-full h-full object-cover"
+                  />
+                )}
+                {talent.isActive && (
+                  <div className="absolute top-6 right-6 flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-full font-bold text-xs uppercase animate-pulse shadow-lg">
+                    <Radio className="w-4 h-4" />
+                    En direct
                   </div>
-                  <div className="text-right">
-                    <span className="text-2xl font-black text-primary">120 <span className="text-xs font-bold text-text-muted">DHS</span></span>
+                )}
+              </div>
+            </motion.div>
+
+            {/* Description Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="space-y-4"
+            >
+              <h1 className="text-4xl md:text-5xl font-bold text-text-main leading-tight">
+                {talent.title}
+              </h1>
+              <p className="text-lg text-text-muted leading-relaxed whitespace-pre-wrap">
+                {talent.description}
+              </p>
+            </motion.div>
+
+            {/* Mentor Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="bg-white rounded-3xl p-8 border-2 border-slate-200"
+            >
+              <p className="text-xs text-text-muted font-bold uppercase tracking-wider mb-4">Instructeur</p>
+              <div className="flex items-start justify-between">
+                <div className="flex gap-4">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-indigo-700 flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
+                    {talent.trainerName?.charAt(0) || 'T'}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-text-main text-lg">{talent.trainerName || 'Hestim Trainer'}</h3>
+                    <div className="flex items-center gap-3 mt-2">
+                      <div className="flex items-center gap-1">
+                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                        <span className="font-bold text-text-main">{talent.rating?.toFixed(1) || '5.0'}</span>
+                      </div>
+                      <span className="text-text-muted text-sm">({talent.reviewCount || 0} avis)</span>
+                    </div>
                   </div>
                 </div>
-                
-                <p className="text-text-muted text-sm mb-6 leading-relaxed font-medium">
-                  {offer.description}
-                </p>
-
-                <ul className="space-y-3 mb-8">
-                  <li className="flex items-center space-x-3 text-sm font-bold text-text-main">
-                    <div className="w-5 h-5 bg-green-50 rounded-full flex items-center justify-center flex-shrink-0">
-                      <CheckCircle2 className="w-3 h-3 text-success" />
-                    </div>
-                    <span>Unlocked Chat access</span>
-                  </li>
-                  <li className="flex items-center space-x-3 text-sm font-bold text-text-main">
-                    <div className="w-5 h-5 bg-green-50 rounded-full flex items-center justify-center flex-shrink-0">
-                      <CheckCircle2 className="w-3 h-3 text-success" />
-                    </div>
-                    <span>Course Materials Bundle</span>
-                  </li>
-                </ul>
-
                 <button
-                  onClick={() => handlePurchase(offer)}
-                  disabled={purchasing}
-                  className="w-full bg-gray-50 text-text-main py-6 rounded-[24px] font-black uppercase tracking-[0.2em] text-[10px] hover:bg-primary hover:text-white transition-all flex items-center justify-center space-x-4 active:scale-95 disabled:opacity-50"
+                  onClick={() => navigate(`/trainer/${talent.trainerId}`)}
+                  className="px-6 py-2 bg-primary text-white rounded-lg font-bold text-sm hover:bg-indigo-700 transition-all active:scale-95"
                 >
-                  <CreditCard className="w-5 h-5" />
-                  <span>{purchasing ? 'Inscription...' : 'Rejoindre la Session'}</span>
+                  Voir le profil
                 </button>
               </div>
-            ))}
-            
-            {offers.length === 0 && (
-              <div className="bg-surface border border-dashed border-border-subtle p-12 text-center rounded-3xl">
-                <p className="text-text-muted italic font-medium">No active sessions available for this talent.</p>
-              </div>
-            )}
+            </motion.div>
           </div>
 
-          {/* Reviews Section */}
-          <div className="pt-12">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-2xl font-black text-text-main tracking-tight italic">Academy Feedback</h3>
-              <div className="h-0.5 flex-grow mx-6 bg-border-subtle" />
-            </div>
-            <div className="space-y-4">
-               <div className="bg-surface p-6 rounded-2xl border border-border-subtle shadow-sm hover:border-primary transition-colors">
-                  <div className="flex items-center justify-between mb-3">
-                     <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-indigo-50 rounded-full flex items-center justify-center font-black text-[10px] text-primary">AR</div>
-                        <span className="font-black text-xs uppercase tracking-tight">Amine R.</span>
-                     </div>
-                     <div className="flex space-x-0.5"><Star className="w-3 h-3 fill-yellow-400 text-yellow-400" /><Star className="w-3 h-3 fill-yellow-400 text-yellow-400" /><Star className="w-3 h-3 fill-yellow-400 text-yellow-400" /><Star className="w-3 h-3 fill-yellow-400 text-yellow-400" /><Star className="w-3 h-3 fill-yellow-400 text-yellow-400" /></div>
-                  </div>
-                  <p className="text-text-muted text-sm font-medium leading-relaxed">Amazing session! The mentor was very patient and explained Python concepts perfectly. Recommending to everyone at Hestim.</p>
-               </div>
-            </div>
+          {/* Right: Offers Sidebar */}
+          <div className="lg:col-span-1">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="sticky top-40 space-y-6"
+            >
+              <div>
+                <h2 className="text-xl font-bold text-text-main mb-6 flex items-center gap-2">
+                  <LayoutGrid className="w-5 h-5 text-primary" />
+                  Offres Disponibles
+                </h2>
+
+                <div className="space-y-4">
+                  {offers.map((offer, idx) => (
+                    <motion.div
+                      key={offer.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.1 }}
+                      className="bg-white border-2 border-slate-200 hover:border-primary rounded-2xl p-6 transition-all hover:shadow-lg group"
+                    >
+                      {/* Offer Header */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-text-main group-hover:text-primary transition-colors">
+                            {offer.title}
+                          </h3>
+                          <div className="flex items-center gap-2 mt-2 text-text-muted text-sm">
+                            <Clock className="w-4 h-4" />
+                            <span>{offer.duration}</span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-3xl font-black text-primary">{offer.price}</p>
+                          <p className="text-xs text-text-muted font-bold">/DHS</p>
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      <p className="text-sm text-text-muted mb-6 line-clamp-3">
+                        {offer.description}
+                      </p>
+
+                      {/* Features */}
+                      <div className="space-y-3 mb-6 pb-6 border-b border-slate-200">
+                        <div className="flex items-center gap-2 text-sm font-medium text-text-main">
+                          <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0" />
+                          <span>Chat direct avec mentor</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm font-medium text-text-main">
+                          <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0" />
+                          <span>Ressources complètes</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm font-medium text-text-main">
+                          <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0" />
+                          <span>Certificat inclus</span>
+                        </div>
+                      </div>
+
+                      {/* CTA Button */}
+                      <button
+                        onClick={() => handlePurchase(offer)}
+                        disabled={purchasing}
+                        className={`w-full py-3 rounded-xl font-bold uppercase tracking-wider text-sm transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 ${
+                          talent.isActive
+                            ? 'bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/30'
+                            : 'bg-primary text-white hover:bg-indigo-700 shadow-lg shadow-primary/30'
+                        }`}
+                      >
+                        {talent.isActive ? (
+                          <>
+                            <Radio className="w-4 h-4 animate-pulse" />
+                            <span>Rejoindre Maintenant</span>
+                          </>
+                        ) : (
+                          <>
+                            <CreditCard className="w-4 h-4" />
+                            <span>S'inscrire</span>
+                          </>
+                        )}
+                      </button>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Info Box */}
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <p className="text-xs text-blue-900 font-medium">
+                  💡 <strong className="block mb-1">Besoin d'aide?</strong>
+                  Contactez directement le mentor via chat après votre inscription.
+                </p>
+              </div>
+            </motion.div>
           </div>
         </motion.div>
       </div>
+
+      {/* Stripe Payment Modal */}
+      <StripePayment
+        isOpen={showStripe}
+        onClose={() => setShowStripe(false)}
+        amount={120}
+        talentTitle={talent?.title || ''}
+        offerTitle={selectedOffer?.title || ''}
+        onPaymentSuccess={handlePaymentSuccess}
+      />
     </div>
   );
 };

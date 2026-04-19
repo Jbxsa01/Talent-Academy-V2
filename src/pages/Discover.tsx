@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { collection, query, limit, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import TalentCard from '../components/TalentCard';
-import { Search, Filter, Grid, List, Compass, Award, BookOpen, TrendingUp, Briefcase } from 'lucide-react';
+import { Search, Filter, Grid, List, Compass, Award, BookOpen, TrendingUp, Briefcase, Radio } from 'lucide-react';
 import { motion } from 'motion/react';
 
 // Mock Talents Data - Professional & Moroccan-focused
@@ -187,7 +187,7 @@ const Discover = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [activeTab, setActiveTab] = useState<'talents' | 'offers'>('talents');
+  const [activeTab, setActiveTab] = useState<'talents' | 'offers' | 'live'>('talents');
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
@@ -259,30 +259,36 @@ const Discover = () => {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-1 mb-4">
-            {(['talents', 'offers'] as const).map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`flex items-center gap-2 px-5 py-2 font-semibold text-sm transition-all rounded-lg ${
-                  activeTab === tab
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
-              >
-                {tab === 'talents' ? (
-                  <>
-                    <BookOpen className="w-4 h-4" />
-                    <span>Talents</span>
-                  </>
-                ) : (
-                  <>
-                    <Briefcase className="w-4 h-4" />
-                    <span>Offres</span>
-                  </>
-                )}
-              </button>
-            ))}
+          <div className="flex gap-1 mb-4 flex-wrap">
+            {(['talents', 'live', 'offers'] as const).map(tab => {
+              const liveCount = talents.filter(t => t.isActive).length;
+              return (
+                <button
+                  key={tab}
+                  onClick={() => {
+                    setActiveTab(tab);
+                    setActiveCategory('All'); // Reset category filter
+                    setSearchTerm(''); // Reset search
+                  }}
+                  className={`flex items-center gap-2 px-5 py-2 font-semibold text-sm transition-all rounded-lg ${
+                    activeTab === tab
+                      ? tab === 'live'
+                        ? 'bg-red-600 text-white shadow-lg shadow-red-500/30'
+                        : 'bg-indigo-600 text-white shadow-md'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  {tab === 'talents' && '🎓 Tous les Talents'}
+                  {tab === 'live' && (
+                    <>
+                      <Radio className="w-4 h-4 animate-pulse" />
+                      <span>Sessions Live ({liveCount})</span>
+                    </>
+                  )}
+                  {tab === 'offers' && '💼 Offres'}
+                </button>
+              );
+            })}
           </div>
 
           {/* Search & Filters Row */}
@@ -394,6 +400,33 @@ const Discover = () => {
               </motion.div>
             )}
 
+            {/* Live Sessions Grid View */}
+            {activeTab === 'live' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={
+                  viewMode === 'grid'
+                    ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'
+                    : 'space-y-6'
+                }
+              >
+                {talents.filter(t => t.isActive).length > 0 ? (
+                  talents.filter(t => t.isActive).map(talent => (
+                    <motion.div key={talent.id} variants={itemVariants}>
+                      <TalentCard talent={talent} />
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="col-span-full text-center py-20">
+                    <Radio className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                    <h3 className="text-2xl font-bold text-slate-900 mb-2">Aucune session en direct</h3>
+                    <p className="text-slate-600">Revenez plus tard pour voir les sessions live</p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
             {/* Offers Grid/List View */}
             {activeTab === 'offers' && (
               <motion.div
@@ -457,6 +490,13 @@ const Discover = () => {
                     </div>
                   </motion.div>
                 ))}
+
+                {/* Empty State */}
+                {paginatedData.length === 0 && (
+                  <div className="col-span-full text-center py-12">
+                    <p className="text-slate-500 font-medium">Aucune offre trouvée</p>
+                  </div>
+                )}
               </motion.div>
             )}
 

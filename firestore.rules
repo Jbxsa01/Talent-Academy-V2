@@ -59,10 +59,18 @@ service cloud.firestore {
       allow update, delete: if isSignedIn() && (resource.data.learnerId == request.auth.uid || isAdmin());
     }
 
+    // Follows (Users following Users, Users following Talents)
+    match /follows/{followId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.followerId == request.auth.uid;
+      allow delete: if isSignedIn() && (resource.data.followerId == request.auth.uid || isAdmin());
+    }
+
     // Deny everything else
     match /{document=**} {
       allow read, write: if false;
     }
   }
 }
+
 

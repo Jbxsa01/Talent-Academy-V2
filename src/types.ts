@@ -5,6 +5,9 @@ export interface UserProfile {
   photoURL: string;
   roles: ('learner' | 'trainer' | 'admin')[];
   createdAt: string;
+  bio?: string;
+  followers?: number;
+  following?: number;
 }
 
 export interface Talent {
@@ -17,7 +20,10 @@ export interface Talent {
   imageUrl: string;
   rating: number;
   reviewCount: number;
+  followers?: number;
+  isActive?: boolean;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Offer {
@@ -27,5 +33,13 @@ export interface Offer {
   description: string;
   duration: string;
   price: number;
+  createdAt: string;
+}
+
+export interface Follow {
+  id: string;
+  followerId: string;
+  followingId: string;
+  followingType: 'user' | 'talent';
   createdAt: string;
 }
