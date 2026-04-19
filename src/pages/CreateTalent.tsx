@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { ArrowLeft, Upload, Sparkles, Info } from 'lucide-react';
 import { motion } from 'motion/react';
 
-const CATEGORIES = ['Design', 'Coding', 'Crochets', 'Darija', 'Marketing', 'Photo', 'Musique', 'Soft Skills', 'Business'];
+const CATEGORIES = ['Design', 'Coding', 'Crochets', 'Marketing', 'Photo', 'Musique', 'Soft Skills', 'Business'];
 
 const CreateTalent = () => {
   const { user, profile } = useAuth();

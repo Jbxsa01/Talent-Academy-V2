@@ -25,7 +25,7 @@ const Dashboard = () => {
   const [customCategory, setCustomCategory] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const categories = ['Coding', 'Design', 'Crochets', 'Darija', 'Marketing', 'Photo', 'Musique', 'Soft Skills', 'Business', 'Langue', 'Art', 'Fitness', 'Autre...'];
+  const categories = ['Coding', 'Design', 'Crochets', 'Marketing', 'Photo', 'Musique', 'Soft Skills', 'Business', 'Langue', 'Art', 'Fitness', 'Autre...'];
 
   const handleImageError = (talentId: string) => {
     setFailedImages(prev => new Set([...prev, talentId]));

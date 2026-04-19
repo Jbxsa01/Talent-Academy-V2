@@ -12,7 +12,7 @@ const MOCK_TALENTS = [
     title: 'Design Moderne & Zellige UI',
     description: 'Apprenez à fusionner les motifs traditionnels Zellige avec le design UI moderne pour vos projets Web.',
     category: 'Design',
-    imageUrl: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?auto=format&fit=crop&q=80&w=400&h=300',
+    imageUrl: '/img/idees-idee-vision-conception-plan-objectif-mission-concept_53876-167112.avif',
     rating: 4.9,
     reviewCount: 247,
     trainerId: 'trainer-1',
@@ -20,23 +20,11 @@ const MOCK_TALENTS = [
     skills: ['Figma', 'UI/UX', 'Design System']
   },
   {
-    id: 'talent-2',
-    title: 'Masterclass Darija Business',
-    description: 'Darija professionnelle pour négocier avec clients et fondateurs. Expressions clés des startups marocaines.',
-    category: 'Darija',
-    imageUrl: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=400&h=300',
-    rating: 5.0,
-    reviewCount: 189,
-    trainerId: 'trainer-2',
-    trainerName: 'Ghita Benani',
-    skills: ['Communication', 'Business', 'Négociation']
-  },
-  {
     id: 'talent-3',
     title: 'Crochets pour Débutants',
     description: 'Apprenez l\'art du crochet avec des projets amusants et faciles. Techniques de base et patterns populaires.',
     category: 'Crochets',
-    imageUrl: 'https://images.unsplash.com/photo-1624112684612-b00fa00294fe?auto=format&fit=crop&q=80&w=400&h=300',
+    imageUrl: '/img/2048.webp',
     rating: 4.9,
     reviewCount: 156,
     trainerId: 'trainer-3',
@@ -176,7 +164,7 @@ const MOCK_OFFERS = [
   }
 ];
 
-const CATEGORIES = ['All', 'Design', 'Coding', 'Crochets', 'Darija', 'Marketing', 'Photo', 'Musique', 'Soft Skills'];
+const CATEGORIES = ['All', 'Design', 'Coding', 'Crochets', 'Marketing', 'Photo', 'Musique', 'Soft Skills'];
 
 const ITEMS_PER_PAGE = 10;
 

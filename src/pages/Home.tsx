@@ -6,7 +6,7 @@ import { Search, Sparkles, Star, Users, Zap, Award, CheckCircle } from 'lucide-r
 import { motion, useMotionValue, useTransform } from 'motion/react';
 import { APP_LOGO } from '../lib/constants';
 
-const CATEGORIES = ['Design', 'Coding', 'Crochets', 'Darija', 'Marketing', 'Photo', 'Musique', 'Soft Skills'];
+const CATEGORIES = ['Design', 'Coding', 'Crochets', 'Marketing', 'Photo', 'Musique', 'Soft Skills'];
 
 // Counter Component for animated numbers
 function AnimatedCounter({ value, duration = 2 }: { value: number; duration?: number }) {
@@ -68,17 +68,7 @@ const MOROCCAN_MOCK_DATA = [
     category: 'Design',
     rating: 4.9,
     trainerName: 'Anas El Alami',
-    imageUrl: 'https://images.unsplash.com/photo-1539650116574-8efeb43e2750?auto=format&fit=crop&q=80&w=400&h=300',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'mock-2',
-    title: 'Masterclass Darija Business',
-    description: 'Darija professionnelle pour négocier avec les clients locaux et les fondateurs de startups au Maroc.',
-    category: 'Darija',
-    rating: 5.0,
-    trainerName: 'Ghita Benani',
-    imageUrl: 'https://images.unsplash.com/photo-1523240715639-9635efa828ce?auto=format&fit=crop&q=80&w=400&h=300',
+    imageUrl: '/img/idees-idee-vision-conception-plan-objectif-mission-concept_53876-167112.avif',
     createdAt: new Date().toISOString()
   },
   {
@@ -88,7 +78,7 @@ const MOROCCAN_MOCK_DATA = [
     category: 'Crochets',
     rating: 4.9,
     trainerName: 'Yasmine Bennani',
-    imageUrl: 'https://images.unsplash.com/photo-1624112684612-b00fa00294fe?auto=format&fit=crop&q=80&w=400&h=300',
+    imageUrl: '/img/2048.webp',
     createdAt: new Date().toISOString()
   },
   {

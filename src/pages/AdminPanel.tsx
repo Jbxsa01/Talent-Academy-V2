@@ -72,7 +72,6 @@ const AdminPanel = () => {
     setLoading(true);
     const mockData = [
       { title: 'Master UI Marocaine', category: 'Design', trainerName: 'Anas El Alami', description: 'Design Moderne & Zellige.', imageUrl: 'https://images.unsplash.com/photo-1539650116574-8efeb43e2750' },
-      { title: 'Darija for Founders', category: 'Darija', trainerName: 'Ghita Benani', description: 'Business Darija expertise.', imageUrl: 'https://images.unsplash.com/photo-1523240715639-9635efa828ce' },
       { title: 'HESTIM Coding Lab', category: 'Coding', trainerName: 'Mehdi Choukri', description: 'Full stack development.', imageUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085' }
     ];
 
