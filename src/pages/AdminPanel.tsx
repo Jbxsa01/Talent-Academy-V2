@@ -275,23 +275,33 @@ const AdminPanel = () => {
 
       {/* Tab Navigation */}
       <div className="flex space-x-2 mb-8 p-2 bg-surface rounded-2xl border border-border-subtle w-fit">
-        {(['overview', 'users', 'talents', 'transactions', 'chats', 'reviews'] as const).map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${
-              activeTab === tab 
-                ? 'bg-primary text-white shadow-lg shadow-primary/20' 
-                : 'text-text-muted hover:text-text-main'
-            }`}
-          >
-            {tab === 'overview' ? '📊 Vue d\'ensemble' :
-             tab === 'users' ? '👥 Utilisateurs' :
-             tab === 'talents' ? '🎓 Talents' :
-             tab === 'transactions' ? '💳 Transactions' :
-             tab === 'chats' ? '💬 Messages' : '⭐ Avis'}
-          </button>
-        ))}
+        {(['overview', 'users', 'talents', 'transactions', 'chats', 'reviews'] as const).map(tab => {
+          const tabConfig = {
+            overview: { icon: BarChart3, label: 'Vue d\'ensemble' },
+            users: { icon: Users, label: 'Utilisateurs' },
+            talents: { icon: Package, label: 'Talents' },
+            transactions: { icon: DollarSign, label: 'Transactions' },
+            chats: { icon: MessageCircle, label: 'Messages' },
+            reviews: { icon: Star, label: 'Avis' }
+          };
+          const config = tabConfig[tab];
+          const IconComponent = config.icon;
+          
+          return (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2.5 rounded-lg font-medium text-sm transition-all flex items-center space-x-2 ${
+                activeTab === tab 
+                  ? 'bg-primary text-white shadow-lg shadow-primary/20' 
+                  : 'text-text-muted hover:text-text-main'
+              }`}
+            >
+              <IconComponent className="w-4 h-4" />
+              <span>{config.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Overview Tab */}
