@@ -134,6 +134,34 @@ const AdminPanel = () => {
     a.click();
   };
 
+  const resetAllPriceTo120 = async () => {
+    if (!confirm('⚠️ ATTENTION: Cela va définir TOUS les prix des offres à 120 DH fixe. Êtes-vous sûr?')) {
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const talentsSnap = await getDocs(collection(db, 'talents'));
+      let updatedCount = 0;
+      
+      for (const talent of talentsSnap.docs) {
+        const offersSnap = await getDocs(collection(db, 'talents', talent.id, 'offers'));
+        for (const offer of offersSnap.docs) {
+          await updateDoc(doc(db, 'talents', talent.id, 'offers', offer.id), { price: 120 });
+          updatedCount++;
+        }
+      }
+      
+      await fetchData();
+      alert(`✅ ${updatedCount} offres mises à jour à 120 DH fixe!`);
+    } catch (err) {
+      console.error('Error resetting prices:', err);
+      alert('❌ Erreur lors de la mise à jour des prix');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">
       {/* Header */}
@@ -149,6 +177,15 @@ const AdminPanel = () => {
         </div>
 
         <div className="flex items-center space-x-4">
+          <button
+            onClick={resetAllPriceTo120}
+            disabled={loading}
+            className="bg-amber-500 text-white px-6 py-3.5 rounded-xl font-bold flex items-center space-x-3 transition-all hover:bg-amber-600 shadow-xl shadow-amber-500/20 disabled:opacity-50"
+          >
+            <DollarSign className="w-4 h-4" />
+            <span>{loading ? 'Updating...' : 'Reset All Prices'}</span>
+          </button>
+
           <button
             onClick={seedMoroccanData}
             disabled={loading}
