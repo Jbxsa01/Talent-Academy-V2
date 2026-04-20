@@ -7,6 +7,94 @@ import { Star, Clock, Users, CheckCircle2, MessageSquare, CreditCard, ArrowLeft,
 import { motion } from 'motion/react';
 import FollowTalentButton from '../components/FollowTalentButton';
 
+// Mock Talents for Development
+const MOCK_TALENTS = [
+  {
+    id: 'talent-1',
+    title: 'Design Moderne & Zellige UI',
+    description: 'Apprenez à fusionner les motifs traditionnels Zellige avec le design UI moderne pour vos projets Web.',
+    category: 'Design',
+    imageUrl: '/img/idees-idee-vision-conception-plan-objectif-mission-concept_53876-167112.avif',
+    rating: 4.9,
+    reviewCount: 247,
+    trainerId: 'trainer-1',
+    trainerName: 'Anas El Alami',
+    isActive: false
+  },
+  {
+    id: 'talent-3',
+    title: 'Crochets pour Débutants',
+    description: 'Apprenez l\'art du crochet avec des projets amusants et faciles. Techniques de base et patterns populaires.',
+    category: 'Crochets',
+    imageUrl: '/img/2048.webp',
+    rating: 4.9,
+    reviewCount: 156,
+    trainerId: 'trainer-3',
+    trainerName: 'Yasmine Bennani',
+    isActive: false
+  },
+  {
+    id: 'talent-4',
+    title: 'Développement Full Stack HESTIM',
+    description: 'Bâtissez des apps scalables. Sessions pratiques de l\'architecture au déploiement avec technologies modernes.',
+    category: 'Coding',
+    imageUrl: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=400&h=300',
+    rating: 4.7,
+    reviewCount: 428,
+    trainerId: 'trainer-4',
+    trainerName: 'Mehdi Choukri',
+    isActive: false
+  },
+  {
+    id: 'talent-5',
+    title: 'Photography Pro: Moments aux Paysages',
+    description: 'Capturez la beauté des paysages marocains et des moments authentiques. Technique professionnelle et post-production.',
+    category: 'Photo',
+    imageUrl: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?auto=format&fit=crop&q=80&w=400&h=300',
+    rating: 4.9,
+    reviewCount: 156,
+    trainerId: 'trainer-5',
+    trainerName: 'Khalid Younes',
+    isActive: false
+  },
+  {
+    id: 'talent-6',
+    title: 'Digital Marketing: Growth Hacking',
+    description: 'Stratégies éprouvées pour croître sur Instagram, TikTok et LinkedIn. Cas d\'études de startups marocaines.',
+    category: 'Marketing',
+    imageUrl: 'https://images.unsplash.com/photo-1460925895917-adf4e565016a?auto=format&fit=crop&q=80&w=400&h=300',
+    rating: 4.6,
+    reviewCount: 278,
+    trainerId: 'trainer-6',
+    trainerName: 'Lina Riad',
+    isActive: false
+  }
+];
+
+const MOCK_OFFERS = [
+  {
+    id: 'offer-1',
+    title: 'Starter Package',
+    description: 'Commencez votre apprentissage avec les bases essentielles.',
+    price: 120,
+    duration: '4 semaines',
+  },
+  {
+    id: 'offer-2',
+    title: 'Professional Pack',
+    description: 'Package professionnel avec mentorat personnalisé et projets concrets.',
+    price: 120,
+    duration: '8 semaines',
+  },
+  {
+    id: 'offer-3',
+    title: 'Master Program',
+    description: 'Programme complet avec certification et accès à la communauté.',
+    price: 120,
+    duration: '12 semaines',
+  }
+];
+
 const TalentDetail = () => {
   const { id } = useParams();
   const { user, profile } = useAuth();
@@ -25,9 +113,22 @@ const TalentDetail = () => {
           setTalent({ id: talentDoc.id, ...talentDoc.data() });
           const offersSnap = await getDocs(collection(db, 'talents', id, 'offers'));
           setOffers(offersSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        } else {
+          // Fallback to mock data if not found in Firestore
+          const mockTalent = MOCK_TALENTS.find(t => t.id === id);
+          if (mockTalent) {
+            setTalent(mockTalent);
+            setOffers(MOCK_OFFERS);
+          }
         }
       } catch (err) {
         console.error(err);
+        // Fallback to mock on error
+        const mockTalent = MOCK_TALENTS.find(t => t.id === id);
+        if (mockTalent) {
+          setTalent(mockTalent);
+          setOffers(MOCK_OFFERS);
+        }
       } finally {
         setLoading(false);
       }
