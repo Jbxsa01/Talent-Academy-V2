@@ -12,6 +12,7 @@ import AdminPanel from './pages/AdminPanel';
 import Login from './pages/Login';
 import CreateTalent from './pages/CreateTalent';
 import TrainerProfile from './pages/TrainerProfile';
+import Seed from './pages/Seed';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
@@ -53,6 +54,7 @@ function AppRoutes() {
           <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
           <Route path="/messaging" element={<PrivateRoute><Messaging /></PrivateRoute>} />
           <Route path="/messaging/:chatId" element={<PrivateRoute><Messaging /></PrivateRoute>} />
+          <Route path="/seed" element={<PrivateRoute><Seed /></PrivateRoute>} />
           <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
         </Routes>
       </div>

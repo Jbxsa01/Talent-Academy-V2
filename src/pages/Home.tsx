@@ -496,7 +496,7 @@ const Home = () => {
             {/* Brand Section */}
             <div className="col-span-1">
               <div className="mb-6">
-                <img src="/img/Gemini_Generated_Image_xal8eexal8eexal8-removebg-preview.png" alt="HESTIM Logo" className="h-12 w-auto object-contain" />
+                <img src={APP_LOGO} alt="HESTIM Logo" className="h-12 w-auto object-contain" />
               </div>
               <p className="text-text-muted text-sm leading-relaxed mb-6">
                 Plateforme d'échange de talents pour la communauté HESTIM. Partagez vos compétences et apprenez ensemble.
