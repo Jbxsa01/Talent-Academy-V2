@@ -124,6 +124,76 @@ const talentsData = [
   }
 ];
 
+const generateRandomTalents = (count: number) => {
+  const categories = ['Design', 'Coding', 'Crochets', 'Marketing', 'Photography', 'Music', 'Soft Skills'];
+  const baseTitles = [
+    'Masterclass UI/UX', 'Fullstack React Node', 'Création de Podcast', 'Marketing Digital Expert', 
+    'Guitare Acoutisque', 'Montage Vidéo Premiere Pro', 'Scrum Master Certif', 'Business Anglais',
+    'Yoga & Bien-être', 'Cuisine Asiatique', 'Intelligence Artificielle', 'Design 3D Blender',
+    'Développement de jeux Unity', 'Copywriting & Ventes', 'Art Floral', 'Prise de parole en public',
+    'Data Science avec Python', 'Cybersécurité base', 'Danse Contemporaine', 'Comptabilité Simplifiée',
+    'Crypto & Blockchain', 'Dessin Manga', 'Modélisation Financière', 'Gestion de Projet Agile',
+    "Peinture à l'huile", 'Production Musicale', 'Montage Photo', 'Bases de données SQL',
+    'Apprentissage Machine', 'Réseaux Sociaux Pro', 'Coaching de Carrière', "Design d'intérieur"
+  ];
+  
+  const images = [
+    'https://images.unsplash.com/photo-1552664730-d307ca884978?w=600',
+    'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=600',
+    'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600',
+    'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=600',
+    'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600',
+    'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=600',
+    'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600',
+    'https://images.unsplash.com/photo-1605379399642-870262d3d051?w=600',
+    'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600',
+    'https://images.unsplash.com/photo-1544377193-33dcf4d68fb5?w=600',
+    'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600',
+    'https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?w=600'
+  ];
+
+  const levels = ['Débutant', 'Intermédiaire', 'Avancé', 'Tous niveaux'];
+
+  const generated = [];
+  for(let i=0; i<count; i++) {
+    const title = baseTitles[Math.floor(Math.random() * baseTitles.length)] + ` - Édition ${Math.floor(Math.random() * 5) + 1}`;
+    generated.push({
+      title,
+      description: `Formation complète et pratique sur : ${title}. Rejoignez cette cohorte pour accélérer votre apprentissage, maîtriser les fondamentaux et exceller dans votre domaine.`,
+      category: categories[Math.floor(Math.random() * categories.length)],
+      imageUrl: images[Math.floor(Math.random() * images.length)],
+      rating: Number((Math.random() * (5 - 4.0) + 4.0).toFixed(1)),
+      reviewCount: Math.floor(Math.random() * 500) + 10,
+      status: 'approved',
+      offers: [
+        { 
+          title: 'Pack Express', 
+          description: 'Introduction rapide et concepts clés', 
+          price: Math.floor(Math.random() * 10 + 5) * 10, 
+          duration: `${Math.floor(Math.random() * 3) + 2} semaines`,
+          frequency: '2h/semaine',
+          level: levels[Math.floor(Math.random() * levels.length)]
+        },
+        { 
+          title: 'Pack Pro', 
+          description: 'Accompagnement intensif et projets réels', 
+          price: Math.floor(Math.random() * 15 + 10) * 10, 
+          duration: `${Math.floor(Math.random() * 6) + 4} semaines`,
+          frequency: '4h/semaine',
+          level: levels[Math.floor(Math.random() * levels.length)]
+        }
+      ]
+    });
+  }
+  return generated;
+};
+
+// Combiner les 8 talents fixes originaux avec 42 talents générés pour faire 50 au total
+const ALL_TALENTS = [...talentsData, ...generateRandomTalents(42)].map(talent => ({
+  ...talent,
+  offers: talent.offers.map(offer => ({ ...offer, price: 120 }))
+}));
+
 export default function Seed() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -135,7 +205,7 @@ export default function Seed() {
       return;
     }
 
-    if (!window.confirm("Êtes-vous sûr de vouloir injecter tous ces talents et offres dans Firestore ? (Cela créera de nombreuses entrées)")) {
+    if (!window.confirm(`Êtes-vous sûr de vouloir injecter ${ALL_TALENTS.length} talents dans Firestore ? (Cela créera de nombreuses entrées)`)) {
       return;
     }
 
@@ -143,7 +213,7 @@ export default function Seed() {
     setLogs([{ message: '🚀 Démarrage du script...', type: 'info' }]);
 
     try {
-      for (const talent of talentsData) {
+      for (const talent of ALL_TALENTS) {
         const { offers, ...talentBaseData } = talent;
         
         // Add talent to 'talents' collection
@@ -193,7 +263,7 @@ export default function Seed() {
         <div className="bg-yellow-50 border border-yellow-200 p-6 rounded-2xl mb-8">
           <h2 className="font-bold text-yellow-800 mb-2">Attention</h2>
           <p className="text-sm text-yellow-700">
-            Ce script ajoutera <strong>{talentsData.length} nouveaux Talents</strong> ainsi que l'ensemble de leurs Offres (tarifs, durées) à Firestore avec comme auteur votre compte formateur actuel.
+            Ce script ajoutera <strong>{ALL_TALENTS.length} nouveaux Talents</strong> ainsi que l'ensemble de leurs Offres (tarifs, durées) à Firestore avec comme auteur votre compte formateur actuel.
             Il est conseillé de ne l'exécuter qu'une seule fois.
           </p>
         </div>

@@ -134,67 +134,7 @@ const AdminPanel = () => {
     a.click();
   };
 
-  const addMassiveTalents = async () => {
-    if (!confirm('⚠️ ATTENTION: Cela va ajouter 50+ talents avec 8-12 offres chacun (500+ offres au total). Êtes-vous sûr?')) {
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      const response = await fetch('http://localhost:3001/api/seed-50talents', {
-        method: 'POST',
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        await fetchData();
-        alert(`✅ ${data.stats.talentsAdded} talents créés avec ${data.stats.totalOffers} offres (${data.stats.averageOffersPerTalent} offres/talent en moyenne)!`);
-      } else {
-        alert(`❌ Erreur: ${data.error}`);
-      }
-    } catch (err) {
-      console.error('Error adding talents:', err);
-      alert(`❌ Erreur lors de l\'ajout des talents: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const resetAllPriceTo120 = async () => {
-    if (!confirm('⚠️ ATTENTION: Cela va réinitialiser TOUS les prix à 120 DH et ajouter des talents exemples. Êtes-vous sûr?')) {
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      const response = await fetch('http://localhost:3001/api/seed-talents', {
-        method: 'POST',
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        await fetchData();
-        alert(`✅ ${data.stats.updatedOffers} offres mises à jour + ${data.stats.addedTalents} nouveaux talents créés à 120 DH fixe!`);
-      } else {
-        alert(`❌ Erreur: ${data.error}`);
-      }
-    } catch (err) {
-      console.error('Error resetting prices:', err);
-      alert(`❌ Erreur lors de la mise à jour des prix: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">
@@ -211,23 +151,7 @@ const AdminPanel = () => {
         </div>
 
         <div className="flex items-center space-x-4">
-          <button
-            onClick={addMassiveTalents}
-            disabled={loading}
-            className="bg-purple-500 text-white px-6 py-3 rounded-lg font-semibold text-sm flex items-center space-x-2 transition-all hover:bg-purple-600 shadow-lg shadow-purple-500/20 disabled:opacity-50"
-          >
-            <Package className="w-4 h-4" />
-            <span>{loading ? 'Création...' : 'Ajouter 50+ Talents'}</span>
-          </button>
 
-          <button
-            onClick={resetAllPriceTo120}
-            disabled={loading}
-            className="bg-amber-500 text-white px-6 py-3 rounded-lg font-semibold text-sm flex items-center space-x-2 transition-all hover:bg-amber-600 shadow-lg shadow-amber-500/20 disabled:opacity-50"
-          >
-            <DollarSign className="w-4 h-4" />
-            <span>{loading ? 'Traitement...' : 'Tarif 120 DH'}</span>
-          </button>
 
           <button
             onClick={seedMoroccanData}
