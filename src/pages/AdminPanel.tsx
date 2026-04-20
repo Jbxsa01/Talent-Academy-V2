@@ -86,7 +86,7 @@ const AdminPanel = () => {
         });
       }
       await fetchData();
-      alert('Moroccan Mock Data Created in Firestore!');
+      alert('✅ Données exemple créées avec succès!');
     } catch (err) {
       console.error(err);
     } finally {
@@ -102,7 +102,7 @@ const AdminPanel = () => {
   };
 
   const deleteReview = async (id: string) => {
-    if (confirm('Delete this review permanently?')) {
+    if (confirm('Supprimer cet avis de manière permanente?')) {
       try {
         await deleteDoc(doc(db, 'reviews', id));
         await fetchData();
@@ -113,7 +113,7 @@ const AdminPanel = () => {
   };
 
   const deleteUser = async (id: string) => {
-    if (confirm('Delete this user permanently? This cannot be undone.')) {
+    if (confirm('Supprimer cet utilisateur de manière permanente? Cette action ne peut pas être annulée.')) {
       try {
         await deleteDoc(doc(db, 'users', id));
         await fetchData();
@@ -170,8 +170,8 @@ const AdminPanel = () => {
             <Shield className="text-primary w-7 h-7" />
           </div>
           <div>
-            <h1 className="text-4xl font-black text-text-main tracking-tight">System Admin</h1>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-text-muted mt-1">Hestim Management Protocol</p>
+            <h1 className="text-4xl font-black text-text-main tracking-tight">Pannel d'Administration</h1>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-text-muted mt-1">Gestion Centralisée HESTIM</p>
           </div>
         </div>
 
@@ -182,7 +182,7 @@ const AdminPanel = () => {
             className="bg-amber-500 text-white px-6 py-3.5 rounded-xl font-bold flex items-center space-x-3 transition-all hover:bg-amber-600 shadow-xl shadow-amber-500/20 disabled:opacity-50"
           >
             <DollarSign className="w-4 h-4" />
-            <span>{loading ? 'Processing...' : 'Fix Prices @ 120 DH + Add Talents'}</span>
+            <span>{loading ? 'Traitement...' : 'Tarif Fixe 120 DH + Ajouter'}</span>
           </button>
 
           <button
@@ -191,7 +191,7 @@ const AdminPanel = () => {
             className="bg-primary text-white px-6 py-3.5 rounded-xl font-bold flex items-center space-x-3 transition-all hover:bg-primary-hover shadow-xl shadow-primary/20 disabled:opacity-50"
           >
             <Database className="w-4 h-4" />
-            <span>{loading ? 'Seeding...' : 'Seed Moroccan Data'}</span>
+            <span>{loading ? 'Initialisation...' : 'Données Exemple'}</span>
           </button>
 
           <button
@@ -199,7 +199,7 @@ const AdminPanel = () => {
             className="bg-surface border border-border-subtle text-text-main px-8 py-3.5 rounded-xl font-bold flex items-center space-x-3 hover:bg-gray-50 transition-all shadow-sm active:scale-95"
           >
             <Download className="w-4 h-4 text-primary" />
-            <span>Export Data</span>
+            <span>Exporter</span>
           </button>
         </div>
       </div>
@@ -207,10 +207,10 @@ const AdminPanel = () => {
       {/* Metrics Row */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-16">
         {[
-          { label: 'Gross Sales', value: `${stats.totalSales} DHS`, sub: 'Direct Revenue', icon: TrendingUp, color: 'text-success', bg: 'bg-green-50' },
-          { label: 'Platform Fee', value: `${stats.commission.toFixed(0)} DHS`, sub: '20% Reserved', icon: DollarSign, color: 'text-primary', bg: 'bg-blue-50' },
-          { label: 'Academy Members', value: stats.totalUsers, sub: 'Verified Scholars', icon: Users, color: 'text-accent', bg: 'bg-pink-50' },
-          { label: 'Talent Catalog', value: stats.totalTalents, sub: `${stats.totalOffers} Sessions`, icon: Package, color: 'text-warning', bg: 'bg-amber-50' },
+          { label: 'Chiffre d\'Affaires', value: `${stats.totalSales} DHS`, sub: 'Revenu Brut', icon: TrendingUp, color: 'text-success', bg: 'bg-green-50' },
+          { label: 'Commission Plateforme', value: `${stats.commission.toFixed(0)} DHS`, sub: '20% Réservé', icon: DollarSign, color: 'text-primary', bg: 'bg-blue-50' },
+          { label: 'Membres Académie', value: stats.totalUsers, sub: 'Utilisateurs Actifs', icon: Users, color: 'text-accent', bg: 'bg-pink-50' },
+          { label: 'Catalogue Talents', value: stats.totalTalents, sub: `${stats.totalOffers} Offres`, icon: Package, color: 'text-warning', bg: 'bg-amber-50' },
         ].map((item, i) => (
           <motion.div
             key={i}
@@ -256,7 +256,7 @@ const AdminPanel = () => {
           {/* Transactions */}
           <div className="lg:col-span-2 bg-surface rounded-3xl border border-border-subtle overflow-hidden shadow-sm">
             <div className="p-8 border-b border-border-subtle bg-gray-50/50">
-              <h2 className="text-xl font-black text-text-main tracking-tight italic">Order Stream</h2>
+              <h2 className="text-xl font-black text-text-main tracking-tight italic">Flux de Commandes</h2>
             </div>
             <div className="p-8 space-y-6">
               {recentTransactions.map(t => (
@@ -266,19 +266,19 @@ const AdminPanel = () => {
                       <TrendingUp className="w-5 h-5 text-success group-hover:text-white transition-colors" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-text-main mb-0.5">Success</p>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">120 DHS Received</p>
+                      <p className="text-sm font-bold text-text-main mb-0.5">Confirmée</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">120 DHS Reçus</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-text-muted opacity-40">Just now</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-text-muted opacity-40">À l'instant</p>
                   </div>
                 </div>
               ))}
               {recentTransactions.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-12 opacity-20">
                   <Package className="w-12 h-12 mb-3" />
-                  <p className="text-xs font-black uppercase tracking-widest">No transaction flow</p>
+                  <p className="text-xs font-black uppercase tracking-widest">Aucune transaction</p>
                 </div>
               )}
             </div>
@@ -287,28 +287,28 @@ const AdminPanel = () => {
           {/* Quick Stats */}
           <div className="space-y-6">
             <div className="bg-surface rounded-3xl border border-border-subtle p-8 shadow-sm">
-              <h3 className="text-sm font-black text-text-main tracking-tight mb-6 italic">Quick Stats</h3>
+              <h3 className="text-sm font-black text-text-main tracking-tight mb-6 italic">Statistiques</h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between py-3 border-b border-border-subtle">
-                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Active Chats</span>
+                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Conversations</span>
                   <span className="text-lg font-black text-primary">{stats.totalChats}</span>
                 </div>
                 <div className="flex items-center justify-between py-3 border-b border-border-subtle">
-                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Total Reviews</span>
+                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Avis Clients</span>
                   <span className="text-lg font-black text-primary">{stats.totalReviews}</span>
                 </div>
                 <div className="flex items-center justify-between py-3">
-                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Total Offers</span>
+                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Total Offres</span>
                   <span className="text-lg font-black text-primary">{stats.totalOffers}</span>
                 </div>
               </div>
             </div>
 
             <div className="bg-gradient-to-br from-primary to-indigo-600 rounded-3xl p-8 shadow-lg shadow-primary/20 text-white">
-              <h3 className="text-sm font-black tracking-tight mb-4 italic">Commission Info</h3>
-              <p className="text-[10px] font-bold opacity-90 mb-6 leading-relaxed">20% of all sales are automatically held in escrow for the school administration.</p>
+              <h3 className="text-sm font-black tracking-tight mb-4 italic">Informations Commission</h3>
+              <p className="text-[10px] font-bold opacity-90 mb-6 leading-relaxed">20% de toutes les ventes sont automatiquement conservés pour l'administration de l'école.</p>
               <div className="bg-white/10 rounded-xl p-4 backdrop-blur-sm border border-white/20">
-                <p className="text-[9px] font-bold uppercase tracking-wider opacity-80 mb-2">Platform Balance</p>
+                <p className="text-[9px] font-bold uppercase tracking-wider opacity-80 mb-2">Solde Plateforme</p>
                 <p className="text-2xl font-black">{stats.commission.toFixed(0)} DHS</p>
               </div>
             </div>
@@ -319,11 +319,11 @@ const AdminPanel = () => {
       {activeTab === 'users' && (
         <div className="bg-surface rounded-3xl border border-border-subtle overflow-hidden shadow-sm">
           <div className="p-8 border-b border-border-subtle flex items-center justify-between bg-gray-50/50">
-            <h2 className="text-xl font-black text-text-main tracking-tight italic">Academy Members</h2>
+            <h2 className="text-xl font-black text-text-main tracking-tight italic">Membres de l'Académie</h2>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-3.5 h-3.5" />
               <input 
-                placeholder="Search users..." 
+                placeholder="Rechercher..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="bg-white border border-border-subtle rounded-lg py-2 pl-9 pr-4 text-[11px] font-semibold focus:outline-none focus:ring-2 ring-primary/10"
@@ -334,9 +334,9 @@ const AdminPanel = () => {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-gray-50/80 text-[10px] font-black uppercase tracking-widest text-text-muted">
-                  <th className="px-8 py-5">Full Identity</th>
-                  <th className="px-8 py-5">Access Roles</th>
-                  <th className="px-8 py-5">Verification</th>
+                  <th className="px-8 py-5">Identité</th>
+                  <th className="px-8 py-5">Rôles</th>
+                  <th className="px-8 py-5">Statut</th>
                   <th className="px-8 py-5 text-right">Actions</th>
                 </tr>
               </thead>
@@ -366,7 +366,7 @@ const AdminPanel = () => {
                     <td className="px-8 py-6">
                       <span className="flex items-center space-x-2 text-[10px] font-black uppercase tracking-widest text-success">
                         <div className="w-1.5 h-1.5 bg-success rounded-full animate-pulse" />
-                        <span>Valid</span>
+                        <span>Vérifié</span>
                       </span>
                     </td>
                     <td className="px-8 py-6 text-right space-x-2">
@@ -376,14 +376,14 @@ const AdminPanel = () => {
                           u.roles?.includes('admin') ? 'bg-indigo-50 text-primary border-primary' : 'bg-surface border-border-subtle text-text-muted hover:bg-gray-50'
                         }`}
                       >
-                        {u.roles?.includes('admin') ? 'Revoke' : 'Admin'}
+                        {u.roles?.includes('admin') ? 'Révoquer' : 'Administrateur'}
                       </button>
                       <button 
                         onClick={() => deleteUser(u.id)}
                         className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg transition-all border border-border-subtle text-danger hover:bg-red-50 inline-block"
                       >
                         <Trash2 className="w-3 h-3 inline mr-1" />
-                        Delete
+                        Supprimer
                       </button>
                     </td>
                   </tr>
@@ -398,16 +398,16 @@ const AdminPanel = () => {
       {activeTab === 'talents' && (
         <div className="bg-surface rounded-3xl border border-border-subtle overflow-hidden shadow-sm">
           <div className="p-8 border-b border-border-subtle flex items-center justify-between bg-gray-50/50">
-            <h2 className="text-xl font-black text-text-main tracking-tight italic">Talent Moderation Queue</h2>
-            <span className="text-[10px] font-black px-3 py-1 bg-amber-50 text-warning rounded-full border border-warning/10 uppercase tracking-widest animate-pulse">Pending Review</span>
+            <h2 className="text-xl font-black text-text-main tracking-tight italic">File de Modération</h2>
+            <span className="text-[10px] font-black px-3 py-1 bg-amber-50 text-warning rounded-full border border-warning/10 uppercase tracking-widest animate-pulse">En Attente</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-gray-50/80 text-[10px] font-black uppercase tracking-widest text-text-muted">
-                  <th className="px-8 py-5">Talent Info</th>
-                  <th className="px-8 py-5">Category</th>
-                  <th className="px-8 py-5">Status</th>
+                  <th className="px-8 py-5">Inform. Talent</th>
+                  <th className="px-8 py-5">Catégorie</th>
+                  <th className="px-8 py-5">Statut</th>
                   <th className="px-8 py-5 text-right">Actions</th>
                 </tr>
               </thead>
@@ -419,7 +419,7 @@ const AdminPanel = () => {
                         <img src={t.imageUrl} alt="" className="w-14 h-10 object-cover rounded-lg border border-border-subtle shadow-sm" referrerPolicy="no-referrer" />
                         <div>
                           <p className="text-sm font-bold text-text-main leading-tight mb-1">{t.title}</p>
-                          <p className="text-[10px] font-bold text-text-muted tracking-tight italic">by {t.trainerName}</p>
+                          <p className="text-[10px] font-bold text-text-muted tracking-tight italic">par {t.trainerName}</p>
                         </div>
                       </div>
                     </td>
@@ -432,12 +432,12 @@ const AdminPanel = () => {
                       {t.status === 'approved' ? (
                         <span className="flex items-center space-x-2 text-[10px] font-black uppercase tracking-widest text-success">
                           <CheckCircle className="w-4 h-4" />
-                          <span>Live on Site</span>
+                          <span>En Ligne</span>
                         </span>
                       ) : (
                         <span className="flex items-center space-x-2 text-[10px] font-black uppercase tracking-widest text-warning">
                           <MoreHorizontal className="w-4 h-4" />
-                          <span>Pending Approval</span>
+                          <span>En Attente</span>
                         </span>
                       )}
                     </td>
@@ -448,12 +448,12 @@ const AdminPanel = () => {
                           className="bg-success text-white px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-green-600 transition-all shadow-lg shadow-green-500/10 inline-block"
                         >
                           <CheckCircle className="w-3 h-3 inline mr-1" />
-                          Approve
+                          Approuver
                         </button>
                       )}
                       <button className="bg-gray-100 text-text-muted px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-red-50 hover:text-danger transition-all inline-block">
                         <XCircle className="w-3 h-3 inline mr-1" />
-                        Reject
+                        Rejeter
                       </button>
                     </td>
                   </tr>
@@ -468,17 +468,17 @@ const AdminPanel = () => {
       {activeTab === 'transactions' && (
         <div className="bg-surface rounded-3xl border border-border-subtle overflow-hidden shadow-sm">
           <div className="p-8 border-b border-border-subtle bg-gray-50/50">
-            <h2 className="text-xl font-black text-text-main tracking-tight italic">Transaction History</h2>
+            <h2 className="text-xl font-black text-text-main tracking-tight italic">Historique des Transactions</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-gray-50/80 text-[10px] font-black uppercase tracking-widest text-text-muted">
-                  <th className="px-8 py-5">Transaction ID</th>
-                  <th className="px-8 py-5">Learner</th>
-                  <th className="px-8 py-5">Amount</th>
+                  <th className="px-8 py-5">ID Transaction</th>
+                  <th className="px-8 py-5">Client</th>
+                  <th className="px-8 py-5">Montant</th>
                   <th className="px-8 py-5">Commission</th>
-                  <th className="px-8 py-5">Status</th>
+                  <th className="px-8 py-5">Statut</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-subtle">
@@ -490,7 +490,7 @@ const AdminPanel = () => {
                     <td className="px-8 py-6 text-sm font-black text-success">{(t.amount * 0.2).toFixed(0)} DHS</td>
                     <td className="px-8 py-6">
                       <span className="text-[9px] font-black uppercase tracking-widest px-2 py-1 bg-green-50 text-success rounded border border-success/10">
-                        Completed
+                        Completée
                       </span>
                     </td>
                   </tr>
@@ -516,7 +516,7 @@ const AdminPanel = () => {
                   <span className="text-sm font-black text-text-main">{chat.participants?.length || 2}</span>
                 </div>
                 <div className="flex items-center justify-between py-2">
-                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Last Message</span>
+                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Dernier Message</span>
                   <p className="text-[10px] text-text-muted text-right italictruncate max-w-[150px]">{chat.lastMessage?.slice(0, 30)}</p>
                 </div>
               </div>
