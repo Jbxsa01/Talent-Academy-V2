@@ -76,13 +76,11 @@ const Navbar = () => {
 
                 <div className="flex items-center space-x-4 pl-4 border-l border-border-subtle">
                   <div className="flex flex-col items-end hidden sm:flex">
-                    <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                      user.email?.endsWith('@HESTIM.ma') 
-                        ? 'bg-primary/10 text-primary' 
-                        : 'bg-amber-50 text-warning'
-                    }`}>
-                      {user.email?.endsWith('@HESTIM.ma') ? 'HESTIM Vérifié' : 'Mode Test'}
-                    </span>
+                    {user.email?.endsWith('@HESTIM.ma') && (
+                      <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                        HESTIM Vérifié
+                      </span>
+                    )}
                   </div>
                   
                   <div className="relative group">
