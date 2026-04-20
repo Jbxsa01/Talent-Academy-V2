@@ -135,25 +135,24 @@ const AdminPanel = () => {
   };
 
   const resetAllPriceTo120 = async () => {
-    if (!confirm('⚠️ ATTENTION: Cela va définir TOUS les prix des offres à 120 DH fixe. Êtes-vous sûr?')) {
+    if (!confirm('⚠️ ATTENTION: Cela va réinitialiser TOUS les prix à 120 DH et ajouter des talents exemples. Êtes-vous sûr?')) {
       return;
     }
     
     setLoading(true);
     try {
-      const talentsSnap = await getDocs(collection(db, 'talents'));
-      let updatedCount = 0;
+      const response = await fetch('/api/seed-talents', {
+        method: 'POST',
+      });
       
-      for (const talent of talentsSnap.docs) {
-        const offersSnap = await getDocs(collection(db, 'talents', talent.id, 'offers'));
-        for (const offer of offersSnap.docs) {
-          await updateDoc(doc(db, 'talents', talent.id, 'offers', offer.id), { price: 120 });
-          updatedCount++;
-        }
+      const data = await response.json();
+      
+      if (data.success) {
+        await fetchData();
+        alert(`✅ ${data.stats.updatedOffers} offres mises à jour + ${data.stats.addedTalents} nouveaux talents créés à 120 DH fixe!`);
+      } else {
+        alert(`❌ Erreur: ${data.error}`);
       }
-      
-      await fetchData();
-      alert(`✅ ${updatedCount} offres mises à jour à 120 DH fixe!`);
     } catch (err) {
       console.error('Error resetting prices:', err);
       alert('❌ Erreur lors de la mise à jour des prix');
@@ -183,7 +182,7 @@ const AdminPanel = () => {
             className="bg-amber-500 text-white px-6 py-3.5 rounded-xl font-bold flex items-center space-x-3 transition-all hover:bg-amber-600 shadow-xl shadow-amber-500/20 disabled:opacity-50"
           >
             <DollarSign className="w-4 h-4" />
-            <span>{loading ? 'Updating...' : 'Reset All Prices'}</span>
+            <span>{loading ? 'Processing...' : 'Fix Prices @ 120 DH + Add Talents'}</span>
           </button>
 
           <button
