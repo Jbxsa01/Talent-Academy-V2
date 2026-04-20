@@ -538,7 +538,7 @@ const AdminPanel = () => {
                       </span>
                     </td>
                   </tr>
-                ))}}
+                ))}
               </tbody>
             </table>
           </div>
@@ -565,7 +565,7 @@ const AdminPanel = () => {
                 </div>
               </div>
             </div>
-          ))}}
+          ))}
         </div>
       )}
 
