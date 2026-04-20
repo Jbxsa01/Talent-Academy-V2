@@ -317,7 +317,16 @@ const TalentDetail = () => {
             {/* Hero Image */}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
               <div className="relative aspect-video bg-slate-200 rounded-[28px] overflow-hidden shadow-xl border border-slate-200">
-                {talent.imageUrl && (
+                {talent.videoUrl ? (
+                  <video 
+                    src={talent.videoUrl} 
+                    className="w-full h-full object-cover"
+                    controls
+                    autoPlay
+                    muted
+                    loop
+                  />
+                ) : talent.imageUrl && (
                   <img
                     src={talent.imageUrl}
                     alt={talent.title}

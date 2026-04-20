@@ -4,6 +4,7 @@ import { db } from '../lib/firebase';
 import TalentCard from '../components/TalentCard';
 import { Search, Filter, Grid, List, Compass, Award, BookOpen, TrendingUp, Briefcase } from 'lucide-react';
 import { motion } from 'motion/react';
+import { CATEGORIES } from '../lib/constants';
 
 // Mock Talents Data - Professional & Moroccan-focused
 const MOCK_TALENTS = [
@@ -164,9 +165,9 @@ const MOCK_OFFERS = [
   }
 ];
 
-const CATEGORIES = ['All', 'Design', 'Coding', 'Crochets', 'Marketing', 'Photo', 'Musique', 'Soft Skills'];
 
-const ITEMS_PER_PAGE = 10;
+
+const ITEMS_PER_PAGE = 200; // Large enough to show all cards as requested
 
 const Discover = () => {
   const [talents, setTalents] = useState<any[]>(MOCK_TALENTS);
@@ -175,7 +176,6 @@ const Discover = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [activeTab, setActiveTab] = useState<'talents' | 'offers'>('talents');
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
@@ -196,7 +196,7 @@ const Discover = () => {
     fetchData();
   }, []);
 
-  const filteredData = (activeTab === 'talents' ? talents : offers).filter(item => {
+  const filteredData = talents.filter(item => {
     const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = activeCategory === 'All' || item.category === activeCategory;
     return matchesSearch && matchesCategory;
@@ -226,7 +226,7 @@ const Discover = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, activeCategory, activeTab]);
+  }, [searchTerm, activeCategory]);
 
   return (
     <div className="w-full bg-gradient-to-b from-white to-slate-50">
@@ -246,28 +246,6 @@ const Discover = () => {
             </p>
           </div>
 
-          {/* Tabs */}
-          <div className="flex gap-1 mb-4 flex-wrap">
-            {(['talents', 'offers'] as const).map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => {
-                    setActiveTab(tab);
-                    setActiveCategory('All'); // Reset category filter
-                    setSearchTerm(''); // Reset search
-                  }}
-                  className={`flex items-center gap-2 px-5 py-2 font-semibold text-sm transition-all rounded-lg ${
-                    activeTab === tab
-                      ? 'bg-indigo-600 text-white shadow-md'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                  }`}
-                >
-                  {tab === 'talents' && '🎓 Tous les Talents'}
-                  {tab === 'offers' && '💼 Offres'}
-                </button>
-            ))}
-          </div>
-
           {/* Search & Filters Row */}
           <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
             {/* Search Bar */}
@@ -275,7 +253,7 @@ const Discover = () => {
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
                 type="text"
-                placeholder={activeTab === 'talents' ? 'Chercher un talent, une compétence...' : 'Chercher une offre...'}
+                placeholder="Chercher un talent, une compétence..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
@@ -313,6 +291,16 @@ const Discover = () => {
       <section className="bg-white border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-6 py-3">
           <div className="flex gap-2 overflow-x-auto pb-2">
+            <button
+              onClick={() => setActiveCategory('All')}
+              className={`px-3 py-1.5 rounded-full font-semibold whitespace-nowrap transition-all text-xs ${
+                activeCategory === 'All'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              Tout voir
+            </button>
             {CATEGORIES.map(cat => (
               <button
                 key={cat}
@@ -344,7 +332,7 @@ const Discover = () => {
           >
             <Award className="w-16 h-16 text-slate-300 mx-auto mb-4" />
             <h3 className="text-2xl font-bold text-slate-900 mb-2">
-              Aucun {activeTab === 'talents' ? 'talent' : 'offre'} trouvé
+              Aucun talent trouvé
             </h3>
             <p className="text-slate-600">Essayez une autre recherche ou catégorie</p>
           </motion.div>
@@ -358,134 +346,25 @@ const Discover = () => {
             </div>
 
             {/* Talents Grid/List View */}
-            {activeTab === 'talents' && (
-              <motion.div
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-                className={
-                  viewMode === 'grid'
-                    ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4'
-                    : 'space-y-4'
-                }
-              >
-                {paginatedData.map(talent => (
-                  <motion.div key={talent.id} variants={itemVariants}>
-                    <TalentCard talent={talent} />
-                  </motion.div>
-                ))}
-              </motion.div>
-            )}
-
-            {/* Offers Grid/List View */}
-            {activeTab === 'offers' && (
-              <motion.div
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-                className={
-                  viewMode === 'grid'
-                    ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4'
-                    : 'space-y-4'
-                }
-              >
-                {paginatedData.map(offer => (
-                  <motion.div
-                    key={offer.id}
-                    variants={itemVariants}
-                    className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all border border-slate-200 flex flex-col group cursor-pointer"
-                  >
-                    {/* Image Container */}
-                    <div className="relative h-32 overflow-hidden bg-slate-100">
-                      <img
-                        src={offer.imageUrl}
-                        alt={offer.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
-                      
-                      {/* Price Badge */}
-                      <div className="absolute bottom-2 left-2">
-                        <div className="bg-white rounded-lg px-2 py-1 shadow-lg">
-                          <p className="text-sm font-extrabold text-indigo-600">
-                            {offer.price.toLocaleString()} DHS
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Category Badge */}
-                      <div className="absolute top-2 left-2">
-                        <span className="bg-white/90 backdrop-blur px-2 py-0.5 rounded-lg text-xs font-extrabold uppercase tracking-wider text-indigo-600">
-                          {offer.category}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="p-2 flex flex-col flex-grow min-h-fit">
-                      <h3 className="text-xs font-bold text-slate-900 mb-1 line-clamp-2 leading-tight">
-                        {offer.title}
-                      </h3>
-
-                      {/* Rating & Button */}
-                      <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-200">
-                        <div className="flex items-center gap-1">
-                          <span className="text-yellow-400 text-sm">⭐</span>
-                          <span className="font-bold text-slate-900 text-xs">{offer.rating.toFixed(1)}</span>
-                        </div>
-                        <button className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded text-xs transition-colors">
-                          Voir
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-
-                {/* Empty State */}
-                {paginatedData.length === 0 && (
-                  <div className="col-span-full text-center py-12">
-                    <p className="text-slate-500 font-medium">Aucune offre trouvée</p>
-                  </div>
-                )}
-              </motion.div>
-            )}
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className={
+                viewMode === 'grid'
+                  ? 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-3'
+                  : 'space-y-3'
+              }
+            >
+              {paginatedData.map(talent => (
+                <motion.div key={talent.id} variants={itemVariants}>
+                  <TalentCard talent={talent} />
+                </motion.div>
+              ))}
+            </motion.div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="mt-12 flex items-center justify-center gap-2">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-semibold hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  ← Précédent
-                </button>
-                
-                <div className="flex gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                    <button
-                      key={page}
-                      onClick={() => handlePageChange(page)}
-                      className={`w-10 h-10 rounded-lg font-semibold transition-all ${
-                        currentPage === page
-                          ? 'bg-indigo-600 text-white shadow-md'
-                          : 'border border-slate-300 text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
-                </div>
-                
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-semibold hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Suivant →
-                </button>
-              </div>
-            )}
+            {/* Pagination removed as per 'show all' request */}
           </>
         )}
       </section>

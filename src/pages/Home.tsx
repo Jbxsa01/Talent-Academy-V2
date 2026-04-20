@@ -4,9 +4,7 @@ import { db } from '../lib/firebase';
 import TalentCard from '../components/TalentCard';
 import { Search, Sparkles, Star, Users, Zap, Award, CheckCircle } from 'lucide-react';
 import { motion, useMotionValue, useTransform } from 'motion/react';
-import { APP_LOGO } from '../lib/constants';
-
-const CATEGORIES = ['Design', 'Coding', 'Crochets', 'Marketing', 'Photo', 'Musique', 'Soft Skills'];
+import { APP_LOGO, CATEGORIES } from '../lib/constants';
 
 // Counter Component for animated numbers
 function AnimatedCounter({ value, duration = 2 }: { value: number; duration?: number }) {

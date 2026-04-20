@@ -1,6 +1,15 @@
 export const APP_LOGO = '/img/logov2.png';
 export const HESTIM_DOMAIN = 'HESTIM.ma';
-export const CATEGORIES = ['Design', 'Coding', 'Crochets', 'Marketing', 'Photography', 'Music', 'Soft Skills'];
+export const CATEGORIES = [
+  'Musique / Chant',
+  'Arts visuels',
+  'Programmation',
+  'Photographie',
+  'Langues',
+  'Jeux stratégiques',
+  'Sport / Fitness',
+  'Crochet'
+];
 
 export const THEME_COLORS = {
   primary: '#3b82f6', // Logo Blue

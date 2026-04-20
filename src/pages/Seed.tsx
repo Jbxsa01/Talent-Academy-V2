@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Loader2, Database, Check } from 'lucide-react';
@@ -9,7 +9,7 @@ const talentsData = [
   {
     title: 'Musique / Chant',
     description: 'Cours de musique et de chant professionnel avec des techniques reconnues mondialement.',
-    category: 'Music',
+    category: 'Musique / Chant',
     imageUrl: 'https://images.unsplash.com/photo-1511379938547-c1f69b13d835?w=600',
     rating: 5.0,
     reviewCount: 247,
@@ -21,7 +21,7 @@ const talentsData = [
   {
     title: 'Arts visuels',
     description: 'Dessin, peinture et art numérique - Apprenez à exprimer votre créativité.',
-    category: 'Design',
+    category: 'Arts visuels',
     imageUrl: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=600',
     rating: 4.9,
     reviewCount: 156,
@@ -36,7 +36,7 @@ const talentsData = [
   {
     title: 'Programmation',
     description: 'Développement web et applications mobiles - De zéro à expert.',
-    category: 'Coding',
+    category: 'Programmation',
     imageUrl: 'https://images.unsplash.com/photo-1633356122544-f134324ef6db?w=600',
     rating: 5.0,
     reviewCount: 428,
@@ -51,7 +51,7 @@ const talentsData = [
   {
     title: 'Photographie',
     description: 'Photographie professionnelle et édition - Capturez la beauté du monde.',
-    category: 'Photography',
+    category: 'Photographie',
     imageUrl: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=600',
     rating: 4.9,
     reviewCount: 156,
@@ -66,7 +66,7 @@ const talentsData = [
   {
     title: 'Langues',
     description: 'Apprentissage de langues - Arabe, Anglais, Français et plus.',
-    category: 'Soft Skills',
+    category: 'Langues',
     imageUrl: 'https://images.unsplash.com/photo-1543269865-cbdf26cecb46?w=600',
     rating: 4.8,
     reviewCount: 278,
@@ -81,7 +81,7 @@ const talentsData = [
   {
     title: 'Jeux stratégiques',
     description: 'Échecs, jeux de stratégie et coaching - Développez votre esprit stratégique.',
-    category: 'Soft Skills',
+    category: 'Jeux stratégiques',
     imageUrl: 'https://images.unsplash.com/photo-1611003228941-98852ba62227?w=600',
     rating: 4.9,
     reviewCount: 189,
@@ -96,7 +96,7 @@ const talentsData = [
   {
     title: 'Sport / Fitness',
     description: 'Entraînement sportif et fitness - Transformez votre corps et esprit.',
-    category: 'Soft Skills',
+    category: 'Sport / Fitness',
     imageUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600',
     rating: 5.0,
     reviewCount: 312,
@@ -110,7 +110,7 @@ const talentsData = [
   {
     title: 'Crochet',
     description: 'Art du crochet et travaux manuels - Créez de magnifiques projets.',
-    category: 'Design',
+    category: 'Crochet',
     imageUrl: 'https://images.unsplash.com/photo-1578926078328-123456789012?w=600',
     rating: 4.8,
     reviewCount: 143,
@@ -125,64 +125,102 @@ const talentsData = [
 ];
 
 const generateRandomTalents = (count: number) => {
-  const categories = ['Design', 'Coding', 'Crochets', 'Marketing', 'Photography', 'Music', 'Soft Skills'];
-  const baseTitles = [
-    'Masterclass UI/UX', 'Fullstack React Node', 'Création de Podcast', 'Marketing Digital Expert', 
-    'Guitare Acoutisque', 'Montage Vidéo Premiere Pro', 'Scrum Master Certif', 'Business Anglais',
-    'Yoga & Bien-être', 'Cuisine Asiatique', 'Intelligence Artificielle', 'Design 3D Blender',
-    'Développement de jeux Unity', 'Copywriting & Ventes', 'Art Floral', 'Prise de parole en public',
-    'Data Science avec Python', 'Cybersécurité base', 'Danse Contemporaine', 'Comptabilité Simplifiée',
-    'Crypto & Blockchain', 'Dessin Manga', 'Modélisation Financière', 'Gestion de Projet Agile',
-    "Peinture à l'huile", 'Production Musicale', 'Montage Photo', 'Bases de données SQL',
-    'Apprentissage Machine', 'Réseaux Sociaux Pro', 'Coaching de Carrière', "Design d'intérieur"
-  ];
-  
-  const images = [
-    'https://images.unsplash.com/photo-1552664730-d307ca884978?w=600',
-    'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=600',
-    'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600',
-    'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=600',
-    'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600',
-    'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=600',
-    'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600',
-    'https://images.unsplash.com/photo-1605379399642-870262d3d051?w=600',
-    'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600',
-    'https://images.unsplash.com/photo-1544377193-33dcf4d68fb5?w=600',
-    'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600',
-    'https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?w=600'
-  ];
+  const categoryData = {
+    'Musique / Chant': {
+      titles: ['Guitare Acoustique', 'Production Musicale', 'Création de Podcast', 'Chant Chorale', 'Solfège Pratique'],
+      images: [
+        'https://images.unsplash.com/photo-1511379938547-c1f69b13d835?w=600',
+        'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=600',
+        'https://images.unsplash.com/photo-1525201548942-d8732f51c7f1?w=600',
+        'https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=600'
+      ]
+    },
+    'Arts visuels': {
+      titles: ['Masterclass UI/UX', 'Design 3D Blender', 'Dessin Manga', "Peinture à l'huile", "Design d'intérieur"],
+      images: [
+        'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=600',
+        'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=600',
+        'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600',
+        'https://images.unsplash.com/photo-1499781350541-7783f6c6a0c8?w=600'
+      ]
+    },
+    'Programmation': {
+      titles: ['Fullstack React Node', 'Data Science avec Python', 'Cybersécurité base', 'Développement Unity', 'Bases de données SQL', 'Crypto & Blockchain'],
+      images: [
+        'https://images.unsplash.com/photo-1633356122544-f134324ef6db?w=600',
+        'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=600',
+        'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600',
+        'https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=600'
+      ]
+    },
+    'Photographie': {
+      titles: ['Montage Photo', 'Montage Vidéo Premiere Pro', 'Photographie de Portrait', 'Cadrage Cinématographique'],
+      images: [
+        'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=600',
+        'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=600',
+        'https://images.unsplash.com/photo-1542038784456-1ea8e935640e?w=600',
+        'https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=600'
+      ]
+    },
+    'Langues': {
+      titles: ['Business Anglais', 'Préparation TOEFL', 'Conversation Espagnole', 'Japonais Débutant', 'Français des Affaires'],
+      images: [
+        'https://images.unsplash.com/photo-1543269865-cbdf26cecb46?w=600',
+        'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600',
+        'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600',
+        'https://images.unsplash.com/photo-1455390582262-044cdead27d8?w=600'
+      ]
+    },
+    'Jeux stratégiques': {
+      titles: ['Échecs pour Débutants', 'Stratégie Jeu de Go', 'Analyse de Tactiques Poker', 'E-sport League of Legends'],
+      images: [
+        'https://images.unsplash.com/photo-1611003228941-98852ba62227?w=600',
+        'https://images.unsplash.com/photo-1580541832626-2a7131ee247c?w=600',
+        'https://images.unsplash.com/photo-1528819622765-d6bcf132f793?w=600',
+        'https://images.unsplash.com/photo-1553481187-be93c21495a9?w=600'
+      ]
+    },
+    'Sport / Fitness': {
+      titles: ['Yoga & Bien-être', 'Danse Contemporaine', 'Coaching Fitness Maison', 'Préparation Marathon'],
+      images: [
+        'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600',
+        'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=600',
+        'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600',
+        'https://images.unsplash.com/photo-1534258936925-c58bed479fcb?w=600'
+      ]
+    },
+    'Crochet': {
+      titles: ['Crochet Amigurumi', 'Tricot Pull Hiver', 'Macramé Décoratif', 'Broderie Avancée', 'Art Floral'],
+      images: [
+        'https://images.unsplash.com/photo-1578926078328-123456789012?w=600',
+        'https://images.unsplash.com/photo-1584992236310-6edddc08acff?w=600',
+        'https://images.unsplash.com/photo-1627844642677-8b32e60408ea?w=600',
+        'https://images.unsplash.com/photo-1584877395420-14c1186e246a?w=600'
+      ]
+    }
+  };
 
+  const categoriesKeys = Object.keys(categoryData) as Array<keyof typeof categoryData>;
   const levels = ['Débutant', 'Intermédiaire', 'Avancé', 'Tous niveaux'];
 
   const generated = [];
   for(let i=0; i<count; i++) {
-    const title = baseTitles[Math.floor(Math.random() * baseTitles.length)] + ` - Édition ${Math.floor(Math.random() * 5) + 1}`;
+    const category = categoriesKeys[Math.floor(Math.random() * categoriesKeys.length)];
+    const catData = categoryData[category];
+    const baseTitle = catData.titles[Math.floor(Math.random() * catData.titles.length)];
+    const title = baseTitle + ` - Édition ${Math.floor(Math.random() * 5) + 1}`;
+    const imageUrl = catData.images[Math.floor(Math.random() * catData.images.length)];
+
     generated.push({
       title,
       description: `Formation complète et pratique sur : ${title}. Rejoignez cette cohorte pour accélérer votre apprentissage, maîtriser les fondamentaux et exceller dans votre domaine.`,
-      category: categories[Math.floor(Math.random() * categories.length)],
-      imageUrl: images[Math.floor(Math.random() * images.length)],
+      category: category,
+      imageUrl: title.includes('Tricot Pull Hiver') ? '/img/images (4).jpg' : imageUrl,
+      videoUrl: (title.includes('Data') || title.includes('Bases de données')) ? '/img/WhatsApp Video 2026-04-20 at 23.46.53.mp4' : null,
       rating: Number((Math.random() * (5 - 4.0) + 4.0).toFixed(1)),
       reviewCount: Math.floor(Math.random() * 500) + 10,
       status: 'approved',
-      offers: [
-        { 
-          title: 'Pack Express', 
-          description: 'Introduction rapide et concepts clés', 
-          price: Math.floor(Math.random() * 10 + 5) * 10, 
-          duration: `${Math.floor(Math.random() * 3) + 2} semaines`,
-          frequency: '2h/semaine',
-          level: levels[Math.floor(Math.random() * levels.length)]
-        },
-        { 
-          title: 'Pack Pro', 
-          description: 'Accompagnement intensif et projets réels', 
-          price: Math.floor(Math.random() * 15 + 10) * 10, 
-          duration: `${Math.floor(Math.random() * 6) + 4} semaines`,
-          frequency: '4h/semaine',
-          level: levels[Math.floor(Math.random() * levels.length)]
-        }
-      ]
+      offers: talentsData.find(t => t.category === category)?.offers || []
     });
   }
   return generated;
@@ -268,20 +306,78 @@ export default function Seed() {
           </p>
         </div>
 
-        <button
-          onClick={handleSeed}
-          disabled={loading}
-          className="w-full py-4 bg-primary text-white rounded-2xl font-black text-lg uppercase tracking-wider hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-lg hover:shadow-primary/30"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-6 h-6 animate-spin" />
-              Tâche en cours...
-            </>
-          ) : (
-            'Lancer le Seeding'
-          )}
-        </button>
+        <div className="flex gap-4">
+          <button
+            onClick={async () => {
+              if(!window.confirm('Voulez-vous supprimer TOUS les talents existants de Firebase?')) return;
+              setLoading(true);
+              try {
+                const snapshot = await getDocs(collection(db, 'talents'));
+                for (const docSnapshot of snapshot.docs) {
+                  const offersSnap = await getDocs(collection(db, 'talents', docSnapshot.id, 'offers'));
+                  for(const offer of offersSnap.docs) {
+                    await deleteDoc(doc(db, 'talents', docSnapshot.id, 'offers', offer.id));
+                  }
+                  await deleteDoc(doc(db, 'talents', docSnapshot.id));
+                }
+                setLogs([{ message: '🗑️ Base de données vidée !', type: 'success' }]);
+              } catch(e: any) {
+                setLogs([{ message: '❌ Erreur nettoyage: ' + e.message, type: 'error' }]);
+              } finally {
+                setLoading(false);
+              }
+            }}
+            disabled={loading}
+            className="flex-1 py-4 bg-red-100 text-red-600 rounded-2xl font-black text-lg uppercase tracking-wider hover:bg-red-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-center"
+          >
+            Vider
+          </button>
+          
+          <button
+            onClick={handleSeed}
+            disabled={loading}
+            className="flex-[2] py-4 bg-primary text-white rounded-2xl font-black text-lg uppercase tracking-wider hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-lg hover:shadow-primary/30"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-6 h-6 animate-spin" />
+                Tâche en cours...
+              </>
+            ) : (
+              'Lancer le Seeding'
+            )}
+          </button>
+        </div>
+
+        <div className="mt-6 border-t border-gray-100 pt-6">
+          <button
+            onClick={async () => {
+              setLoading(true);
+              try {
+                const q = query(collection(db, 'talents'), where('title', '==', 'Fullstack React Node - Édition 4'));
+                const snap = await getDocs(q);
+                if (snap.empty) {
+                  setLogs([{ message: '❌ Talent non trouvé (vérifiez le titre exact)', type: 'error' }]);
+                } else {
+                  for (const d of snap.docs) {
+                    await updateDoc(doc(db, 'talents', d.id), {
+                      imageUrl: 'https://images.unsplash.com/photo-1633356122544-f134324ef6db?w=600'
+                    });
+                    setLogs([{ message: '✅ Image mise à jour pour: Fullstack React Node - Édition 4', type: 'success' }]);
+                  }
+                }
+              } catch(e: any) {
+                setLogs([{ message: '❌ Erreur: ' + e.message, type: 'error' }]);
+              } finally {
+                setLoading(false);
+              }
+            }}
+            disabled={loading}
+            className="w-full py-3 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all"
+          >
+            Fixer Manuellement Image "Fullstack Ed. 4"
+          </button>
+        </div>
 
         {logs.length > 0 && (
           <div className="mt-8 bg-gray-900 rounded-2xl p-6 font-mono text-sm overflow-hidden border border-gray-800">

@@ -18,6 +18,7 @@ export interface Talent {
   description: string;
   category: string;
   imageUrl: string;
+  videoUrl?: string;
   rating: number;
   reviewCount: number;
   followers?: number;
