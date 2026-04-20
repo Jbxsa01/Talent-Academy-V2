@@ -115,7 +115,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="relative bg-white rounded-lg shadow-lg max-w-md w-full overflow-hidden border border-gray-200"
+            className="relative bg-white rounded-lg shadow-lg max-w-2xl w-full overflow-hidden border border-gray-200"
           >
             {/* Header - Simple White */}
             <div className="border-b border-gray-200 px-6 py-6">
@@ -144,151 +144,153 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               </div>
             </div>
 
-            {/* Form Content */}
+            {/* Form Content - Wide Layout */}
             <div className="p-6">
               {!paymentSuccess ? (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  {/* Card Holder Name */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1.5">
-                      Nom du titulaire
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Jean Dupont"
-                      value={formData.cardName}
-                      onChange={(e) => setFormData({ ...formData, cardName: e.target.value })}
-                      disabled={isProcessing}
-                      className={`w-full px-3 py-2 rounded border text-sm transition-colors disabled:opacity-50 disabled:bg-gray-50 ${
-                        errors.cardName
-                          ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                          : 'border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
-                      } focus:outline-none`}
-                    />
-                    {errors.cardName && (
-                      <p className="text-red-600 text-xs mt-1 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        {errors.cardName}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Card Number */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1.5">
-                      Numéro de carte
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="4242 4242 4242 4242"
-                      value={formData.cardNumber}
-                      onChange={handleCardNumberChange}
-                      disabled={isProcessing}
-                      maxLength="19"
-                      className={`w-full px-3 py-2 rounded border text-sm transition-colors disabled:opacity-50 disabled:bg-gray-50 font-mono tracking-wider ${
-                        errors.cardNumber
-                          ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                          : 'border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
-                      } focus:outline-none`}
-                    />
-                    {errors.cardNumber && (
-                      <p className="text-red-600 text-xs mt-1 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        {errors.cardNumber}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Expiry & CVC */}
-                  <div className="grid grid-cols-2 gap-3">
+                <form onSubmit={handleSubmit} className="flex flex-row gap-8 items-start">
+                  {/* Left: Card Fields */}
+                  <div className="flex-1 space-y-4">
+                    {/* Card Holder Name */}
                     <div>
                       <label className="block text-sm font-medium text-gray-900 mb-1.5">
-                        Expiration
+                        Nom du titulaire
                       </label>
                       <input
                         type="text"
-                        placeholder="12/25"
-                        value={formData.expiryDate}
-                        onChange={handleExpiryChange}
+                        placeholder="Jean Dupont"
+                        value={formData.cardName}
+                        onChange={(e) => setFormData({ ...formData, cardName: e.target.value })}
                         disabled={isProcessing}
-                        maxLength="5"
-                        className={`w-full px-3 py-2 rounded border text-sm transition-colors disabled:opacity-50 disabled:bg-gray-50 font-mono ${
-                          errors.expiryDate
+                        className={`w-full px-3 py-2 rounded border text-sm transition-colors disabled:opacity-50 disabled:bg-gray-50 ${
+                          errors.cardName
                             ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                             : 'border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
                         } focus:outline-none`}
                       />
-                      {errors.expiryDate && (
-                        <p className="text-red-600 text-xs mt-1">
-                          {errors.expiryDate}
+                      {errors.cardName && (
+                        <p className="text-red-600 text-xs mt-1 flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          {errors.cardName}
                         </p>
                       )}
                     </div>
 
+                    {/* Card Number */}
                     <div>
                       <label className="block text-sm font-medium text-gray-900 mb-1.5">
-                        CVC
+                        Numéro de carte
                       </label>
                       <input
                         type="text"
-                        placeholder="123"
-                        value={formData.cvc}
-                        onChange={handleCvcChange}
+                        placeholder="4242 4242 4242 4242"
+                        value={formData.cardNumber}
+                        onChange={handleCardNumberChange}
                         disabled={isProcessing}
-                        maxLength="3"
+                        maxLength="19"
                         className={`w-full px-3 py-2 rounded border text-sm transition-colors disabled:opacity-50 disabled:bg-gray-50 font-mono tracking-wider ${
-                          errors.cvc
+                          errors.cardNumber
                             ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                             : 'border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
                         } focus:outline-none`}
                       />
-                      {errors.cvc && (
-                        <p className="text-red-600 text-xs mt-1">
-                          {errors.cvc}
+                      {errors.cardNumber && (
+                        <p className="text-red-600 text-xs mt-1 flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          {errors.cardNumber}
                         </p>
                       )}
                     </div>
+
+                    {/* Expiry & CVC */}
+                    <div className="flex gap-3">
+                      <div className="w-1/2">
+                        <label className="block text-sm font-medium text-gray-900 mb-1.5">
+                          Expiration
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="12/25"
+                          value={formData.expiryDate}
+                          onChange={handleExpiryChange}
+                          disabled={isProcessing}
+                          maxLength="5"
+                          className={`w-full px-3 py-2 rounded border text-sm transition-colors disabled:opacity-50 disabled:bg-gray-50 font-mono ${
+                            errors.expiryDate
+                              ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                              : 'border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                          } focus:outline-none`}
+                        />
+                        {errors.expiryDate && (
+                          <p className="text-red-600 text-xs mt-1">
+                            {errors.expiryDate}
+                          </p>
+                        )}
+                      </div>
+                      <div className="w-1/2">
+                        <label className="block text-sm font-medium text-gray-900 mb-1.5">
+                          CVC
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="123"
+                          value={formData.cvc}
+                          onChange={handleCvcChange}
+                          disabled={isProcessing}
+                          maxLength="3"
+                          className={`w-full px-3 py-2 rounded border text-sm transition-colors disabled:opacity-50 disabled:bg-gray-50 font-mono tracking-wider ${
+                            errors.cvc
+                              ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                              : 'border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                          } focus:outline-none`}
+                        />
+                        {errors.cvc && (
+                          <p className="text-red-600 text-xs mt-1">
+                            {errors.cvc}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Security Notice - Minimal */}
+                    <div className="flex items-start gap-2 text-xs text-gray-600 bg-gray-50 p-3 rounded border border-gray-200">
+                      <Lock className="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5" />
+                      <p>Vos informations sont sécurisées et chiffrées.</p>
+                    </div>
                   </div>
 
-                  {/* Security Notice - Minimal */}
-                  <div className="flex items-start gap-2 text-xs text-gray-600 bg-gray-50 p-3 rounded border border-gray-200">
-                    <Lock className="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5" />
-                    <p>Vos informations sont sécurisées et chiffrées.</p>
-                  </div>
-
-                  {/* Submit Button - Blue Primary */}
-                  <button
-                    type="submit"
-                    disabled={isProcessing}
-                    className="w-full bg-blue-600 text-white py-2.5 rounded font-medium text-sm hover:bg-blue-700 transition-colors active:bg-blue-800 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {isProcessing ? (
-                      <>
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ repeat: Infinity, duration: 1 }}
-                        >
+                  {/* Right: Actions */}
+                  <div className="flex flex-col gap-4 w-64 min-w-[220px]">
+                    <button
+                      type="submit"
+                      disabled={isProcessing}
+                      className="w-full bg-blue-600 text-white py-2.5 rounded font-medium text-sm hover:bg-blue-700 transition-colors active:bg-blue-800 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {isProcessing ? (
+                        <>
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ repeat: Infinity, duration: 1 }}
+                          >
+                            <CreditCard className="w-4 h-4" />
+                          </motion.div>
+                          <span>Traitement...</span>
+                        </>
+                      ) : (
+                        <>
                           <CreditCard className="w-4 h-4" />
-                        </motion.div>
-                        <span>Traitement...</span>
-                      </>
-                    ) : (
-                      <>
-                        <CreditCard className="w-4 h-4" />
-                        <span>Payer {offer?.price} DHS</span>
-                      </>
-                    )}
-                  </button>
-
-                  {/* Cancel Button */}
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    disabled={isProcessing}
-                    className="w-full py-2 rounded font-medium text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50"
-                  >
-                    Annuler
-                  </button>
+                          <span>Payer {offer?.price} DHS</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      disabled={isProcessing}
+                      className="w-full py-2 rounded font-medium text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50"
+                    >
+                      Annuler
+                    </button>
+                  </div>
                 </form>
               ) : (
                 /* Success Screen */
