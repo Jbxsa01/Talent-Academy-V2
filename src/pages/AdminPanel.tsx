@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
+import { collection, query, getDocs, orderBy, limit, getCountFromServer, doc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Shield, TrendingUp, Users, Package, Download, Search, MoreHorizontal, DollarSign, Database, CheckCircle, XCircle, MessageCircle, Star, Activity, BarChart3, Settings, Eye, Edit2, Trash2 } from 'lucide-react';
+import { Shield, TrendingUp, Users, Package, Download, Search, MoreHorizontal, DollarSign, Database, CheckCircle, XCircle, MessageCircle, Star, Activity, BarChart3, Settings, Eye, Edit2, Trash2, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { doc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
 
 const AdminPanel = () => {
   const [stats, setStats] = useState({ totalSales: 0, totalUsers: 0, totalTalents: 0, commission: 0, totalChats: 0, totalReviews: 0, totalOffers: 0 });
@@ -18,30 +17,40 @@ const AdminPanel = () => {
 
   const fetchData = async () => {
     try {
-      const usersSnap = await getDocs(collection(db, 'users'));
-      const talentsSnap = await getDocs(collection(db, 'talents'));
-      const transSnap = await getDocs(collection(db, 'transactions'));
-      const chatsSnap = await getDocs(collection(db, 'chats'));
-      const reviewsSnap = await getDocs(collection(db, 'reviews'));
+      // Optimizied stats fetching (Cheaper reads)
+      const [
+        usersCount, 
+        talentsCount, 
+        transCount, 
+        chatsCount, 
+        reviewsCount
+      ] = await Promise.all([
+        getCountFromServer(collection(db, 'users')),
+        getCountFromServer(collection(db, 'talents')),
+        getCountFromServer(collection(db, 'transactions')),
+        getCountFromServer(collection(db, 'chats')),
+        getCountFromServer(collection(db, 'reviews'))
+      ]);
       
-      let totalOffers = 0;
-      for (const talent of talentsSnap.docs) {
-        const offersSnap = await getDocs(collection(db, 'talents', talent.id, 'offers'));
-        totalOffers += offersSnap.size;
-      }
-      
-      const sales = transSnap.size * 120;
+      const sales = transCount.data().count * 120;
       setStats({
         totalSales: sales,
-        totalUsers: usersSnap.size,
-        totalTalents: talentsSnap.size,
+        totalUsers: usersCount.data().count,
+        totalTalents: talentsCount.data().count,
         commission: sales * 0.20,
-        totalChats: chatsSnap.size,
-        totalReviews: reviewsSnap.size,
-        totalOffers
+        totalChats: chatsCount.data().count,
+        totalReviews: reviewsCount.data().count,
+        totalOffers: 0 // We'll skip the expensive offers count for quota safety
       });
 
-      setRecentTransactions(transSnap.docs.slice(-5).reverse().map(d => ({ id: d.id, ...d.data() })));
+      // Limited data fetching
+      const usersSnap = await getDocs(query(collection(db, 'users'), limit(50)));
+      const talentsSnap = await getDocs(query(collection(db, 'talents'), limit(50)));
+      const transSnap = await getDocs(query(collection(db, 'transactions'), orderBy('createdAt', 'desc'), limit(10)));
+      const chatsSnap = await getDocs(query(collection(db, 'chats'), limit(50)));
+      const reviewsSnap = await getDocs(query(collection(db, 'reviews'), limit(50)));
+
+      setRecentTransactions(transSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       setUsers(usersSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       setTalents(talentsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       setChats(chatsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -97,6 +106,13 @@ const AdminPanel = () => {
   const approveTalent = async (id: string) => {
     try {
       await updateDoc(doc(db, 'talents', id), { status: 'approved' });
+      await fetchData();
+    } catch (err) { console.error(err); }
+  };
+
+  const toggleVerification = async (userId: string, currentStatus: boolean) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), { isVerified: !currentStatus });
       await fetchData();
     } catch (err) { console.error(err); }
   };
@@ -325,7 +341,10 @@ const AdminPanel = () => {
                       <div className="flex items-center space-x-3">
                         <img src={u.photoURL} alt="" className="w-8 h-8 rounded-full border border-border-subtle shadow-sm" />
                         <div>
-                          <p className="text-sm font-medium text-text-main">{u.displayName}</p>
+                          <p className="text-sm font-semibold text-text-main flex items-center gap-1.5">
+                            {u.displayName}
+                            {u.isVerified && <ShieldCheck className="w-3.5 h-3.5 text-primary fill-primary/10" />}
+                          </p>
                           <p className="text-xs font-normal text-text-muted">{u.email}</p>
                         </div>
                       </div>
@@ -348,6 +367,15 @@ const AdminPanel = () => {
                       </span>
                     </td>
                     <td className="px-6 py-5 text-right space-x-2">
+                       <button 
+                        onClick={() => toggleVerification(u.id, !!u.isVerified)}
+                        className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-all border inline-block ${
+                          u.isVerified ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                        }`}
+                      >
+                        <ShieldCheck className={`w-3 h-3 inline mr-1 ${u.isVerified ? 'text-indigo-600' : 'text-slate-400'}`} />
+                        {u.isVerified ? 'Certifié' : 'Vérifier'}
+                      </button>
                       <button 
                         onClick={() => toggleRole(u.id, u.roles || [], 'admin')}
                         className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-all border inline-block ${

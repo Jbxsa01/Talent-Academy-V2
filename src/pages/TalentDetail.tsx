@@ -193,7 +193,21 @@ const TalentDetail = () => {
       try {
         const talentDoc = await getDoc(doc(db, 'talents', id));
         if (talentDoc.exists()) {
-          setTalent({ id: talentDoc.id, ...talentDoc.data() });
+          const tData = { id: talentDoc.id, ...talentDoc.data() };
+          
+          // Fetch real-time trainer info to get latest photo/name
+          try {
+            const trainerDoc = await getDoc(doc(db, 'users', tData.trainerId));
+            if (trainerDoc.exists()) {
+              const trData = trainerDoc.data();
+              tData.trainerName = trData.displayName || tData.trainerName;
+              tData.trainerPhotoURL = trData.photoURL || tData.trainerPhotoURL;
+            }
+          } catch (e) {
+            console.error("Trainer fetch failed", e);
+          }
+
+          setTalent(tData);
           const offersSnap = await getDocs(collection(db, 'talents', id, 'offers'));
           setOffers(offersSnap.docs.map(d => ({ id: d.id, ...d.data() })));
         } else {
@@ -363,9 +377,17 @@ const TalentDetail = () => {
                 <div className="flex gap-4">
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-indigo-700 flex items-center justify-center text-white font-bold text-xl flex-shrink-0 overflow-hidden">
                     {talent.trainerPhotoURL ? (
-                      <img src={talent.trainerPhotoURL} alt={talent.trainerName} className="w-full h-full object-cover" />
+                      <img 
+                        src={talent.trainerPhotoURL} 
+                        alt={talent.trainerName} 
+                        className="w-full h-full object-cover" 
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                          (e.target as HTMLImageElement).parentElement!.innerText = talent.trainerName?.split(' ').map(n => n[0]).join('') || 'HT';
+                        }}
+                      />
                     ) : (
-                      talent.trainerName?.charAt(0) || 'T'
+                      talent.trainerName?.split(' ').map(n => n[0]).join('') || 'HT'
                     )}
                   </div>
                   <div>

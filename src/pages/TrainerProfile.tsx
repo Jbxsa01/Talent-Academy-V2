@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, collection, getDocs, query, where, addDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, query, where, deleteDoc, setDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'motion/react';
 import { 
-  MessageSquare, Plus, Edit2, ArrowLeft, Users, 
-  BookOpen, Star, ShieldCheck, Mail, MapPin, Loader2, UserPlus, UserCheck 
+  MessageSquare, Edit2, ArrowLeft, 
+  BookOpen, ShieldCheck, Mail, MapPin, Loader2, UserPlus, UserCheck 
 } from 'lucide-react';
 import TalentCard from '../components/TalentCard';
 
@@ -22,18 +22,18 @@ const TrainerProfile = () => {
   const [loading, setLoading] = useState(true);
   const [followLoading, setFollowLoading] = useState(false);
 
+  const [visibleCount, setVisibleCount] = useState(6);
+
   useEffect(() => {
     const fetchData = async () => {
       if (!trainerId) return;
       
       try {
-        // Fetch trainer profile
         const trainerDoc = await getDoc(doc(db, 'users', trainerId));
         if (trainerDoc.exists()) {
           setTrainer({ id: trainerDoc.id, ...trainerDoc.data() });
         }
 
-        // Fetch trainer's talents
         const talentsQuery = query(
           collection(db, 'talents'),
           where('trainerId', '==', trainerId)
@@ -41,19 +41,12 @@ const TrainerProfile = () => {
         const talentsSnap = await getDocs(talentsQuery);
         setTalents(talentsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
-        // Check if current user follows this trainer
         if (user) {
-          const followQuery = query(
-            collection(db, 'follows'),
-            where('followerId', '==', user.uid),
-            where('followingId', '==', trainerId),
-            where('followingType', '==', 'user')
-          );
-          const followSnap = await getDocs(followQuery);
-          setIsFollowing(followSnap.docs.length > 0);
+          const followId = `${user.uid}_${trainerId}`;
+          const followDoc = await getDoc(doc(db, 'follows', followId));
+          setIsFollowing(followDoc.exists());
         }
 
-        // Get followers count
         const followersQuery = query(
           collection(db, 'follows'),
           where('followingId', '==', trainerId),
@@ -72,25 +65,19 @@ const TrainerProfile = () => {
   }, [trainerId, user]);
 
   const handleFollow = async () => {
-    if (!user || !trainerId) return;
+    if (!user || !trainerId) return navigate('/login');
     setFollowLoading(true);
+
+    const followId = `${user.uid}_${trainerId}`;
+    const followRef = doc(db, 'follows', followId);
 
     try {
       if (isFollowing) {
-        const followQuery = query(
-          collection(db, 'follows'),
-          where('followerId', '==', user.uid),
-          where('followingId', '==', trainerId),
-          where('followingType', '==', 'user')
-        );
-        const followSnap = await getDocs(followQuery);
-        for (const docSnapshot of followSnap.docs) {
-          await deleteDoc(docSnapshot.ref);
-        }
+        await deleteDoc(followRef);
         setIsFollowing(false);
         setFollowers(prev => Math.max(0, prev - 1));
       } else {
-        await addDoc(collection(db, 'follows'), {
+        await setDoc(followRef, {
           followerId: user.uid,
           followingId: trainerId,
           followingType: 'user',
@@ -103,6 +90,41 @@ const TrainerProfile = () => {
       console.error('Error toggling follow:', error);
     } finally {
       setFollowLoading(false);
+    }
+  };
+
+  const handleStartChat = async () => {
+    if (!user) return navigate('/login');
+    const isOwnProfile = user.uid === trainerId;
+    if (isOwnProfile) return navigate('/messaging');
+
+    try {
+      const chatsQuery = query(collection(db, 'chats'), where('participants', 'array-contains', user.uid));
+      const chatsSnap = await getDocs(chatsQuery);
+      const existingChat = chatsSnap.docs.find(d => {
+        const p = d.data().participants;
+        return p.includes(trainerId) && p.length === 2;
+      });
+
+      if (existingChat) {
+        navigate(`/messaging/${existingChat.id}`);
+      } else {
+        const newChat = await addDoc(collection(db, 'chats'), {
+          participants: [user.uid, trainerId],
+          trainerId: trainerId,
+          learnerId: user.uid,
+          trainerName: trainer.displayName,
+          learnerName: user.displayName || 'Utilisateur',
+          lastMessage: '',
+          updatedAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
+          type: 'direct'
+        });
+        navigate(`/messaging/${newChat.id}`);
+      }
+    } catch (err) {
+      console.error('Error starting chat:', err);
+      navigate('/messaging');
     }
   };
 
@@ -128,7 +150,6 @@ const TrainerProfile = () => {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
-      {/* Dynamic Header Background */}
       <div className="h-[280px] relative overflow-hidden bg-slate-900 border-b border-indigo-900/20">
         <div 
           className="absolute inset-0 bg-cover bg-center transition-transform duration-700 scale-105"
@@ -163,20 +184,26 @@ const TrainerProfile = () => {
 
       <div className="max-w-6xl mx-auto px-6 -mt-24 relative z-30 pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
-          {/* Left Column: Trainer Card */}
           <div className="lg:col-span-4 space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="bg-white rounded-[32px] p-8 shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col items-center text-center"
             >
-              <div className="w-40 h-40 rounded-[40px] border-8 border-white shadow-2xl overflow-hidden bg-slate-50 ring-1 ring-slate-100">
+              <div className="w-40 h-40 rounded-[40px] border-8 border-white shadow-2xl overflow-hidden bg-slate-50 ring-1 ring-slate-100 flex items-center justify-center">
                 {trainer.photoURL ? (
-                  <img src={trainer.photoURL} alt={trainer.displayName} className="w-full h-full object-cover" />
+                  <img 
+                    src={trainer.photoURL} 
+                    alt={trainer.displayName} 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                      (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center text-5xl font-black text-slate-200 uppercase">${trainer.displayName?.split(' ').map((n: string) => n[0]).join('') || '?'}</div>`;
+                    }}
+                  />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-5xl font-black text-slate-200 uppercase">
-                    {trainer.displayName?.charAt(0) || '👤'}
+                    {trainer.displayName?.split(' ').map((n: string) => n[0]).join('') || '?'}
                   </div>
                 )}
               </div>
@@ -184,7 +211,7 @@ const TrainerProfile = () => {
               <div className="mt-8 space-y-2">
                 <div className="flex items-center gap-2 justify-center">
                   <h2 className="text-2xl font-black text-slate-900">{trainer.displayName}</h2>
-                  <ShieldCheck className="w-6 h-6 text-primary fill-primary/10" />
+                  {trainer.isVerified && <ShieldCheck className="w-6 h-6 text-primary fill-primary/10" />}
                 </div>
                 <p className="text-slate-500 font-bold flex items-center gap-2 justify-center text-sm">
                   <Mail className="w-4 h-4 text-slate-400" /> {trainer.email}
@@ -218,7 +245,7 @@ const TrainerProfile = () => {
                     {isFollowing ? 'Suivi' : 'Suivre le Trainer'}
                   </button>
                   <button
-                    onClick={() => navigate(`/messaging`)}
+                    onClick={handleStartChat}
                     className="aspect-square bg-slate-900 text-white rounded-2xl flex items-center justify-center hover:bg-slate-800 transition-all shadow-lg"
                   >
                     <MessageSquare className="w-5 h-5" />
@@ -227,7 +254,6 @@ const TrainerProfile = () => {
               )}
             </motion.div>
 
-            {/* Quick Stats Summary */}
             <motion.div
                initial={{ opacity: 0, y: 20 }}
                animate={{ opacity: 1, y: 0 }}
@@ -238,10 +264,21 @@ const TrainerProfile = () => {
                {[
                  { label: 'Localisation', val: trainer.location || 'Maroc', icon: MapPin },
                  { label: 'Talents Actifs', val: `${talents.length} formations`, icon: BookOpen },
-                 { label: 'Vérification', val: 'Compte Certifié', icon: ShieldCheck },
+                 { 
+                   label: 'Vérification', 
+                   val: trainer.isVerified ? 'Compte Certifié' : 'En attente', 
+                   icon: ShieldCheck,
+                   tooltip: 'Ce badge certifie la crédibilité du formateur par Hestim Academy. Pour toute demande, contactez l\'admin.'
+                 },
                ].map((item, i) => (
-                 <div key={i} className="flex items-center gap-4 p-3 hover:bg-slate-50 rounded-2xl transition-colors">
-                    <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400">
+                 <div key={i} className="group relative flex items-center gap-4 p-3 hover:bg-slate-50 rounded-2xl transition-colors cursor-help">
+                    {item.tooltip && (
+                      <div className="absolute bottom-full left-0 mb-2 w-64 p-3 bg-slate-900 text-white text-[10px] rounded-xl opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 shadow-2xl leading-relaxed">
+                         {item.tooltip}
+                         <div className="absolute top-full left-6 border-8 border-transparent border-t-slate-900" />
+                      </div>
+                    )}
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${item.val === 'Compte Certifié' ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-400'}`}>
                       <item.icon className="w-4 h-4" />
                     </div>
                     <div>
@@ -253,9 +290,7 @@ const TrainerProfile = () => {
             </motion.div>
           </div>
 
-          {/* Right Column: Main Feed */}
           <div className="lg:col-span-8 space-y-8">
-            {/* Bio Preview */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -270,7 +305,6 @@ const TrainerProfile = () => {
                </p>
             </motion.div>
 
-            {/* Talents Grid */}
             <div className="space-y-8">
                <div className="flex items-center justify-between px-2">
                   <h3 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
@@ -280,17 +314,30 @@ const TrainerProfile = () => {
                </div>
 
                {talents.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {talents.map((talent, i) => (
-                    <motion.div
-                      key={talent.id}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: i * 0.05 }}
-                    >
-                      <TalentCard talent={talent} />
-                    </motion.div>
-                  ))}
+                <div className="space-y-10">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {talents.slice(0, visibleCount).map((talent, i) => (
+                      <motion.div
+                        key={talent.id}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: i * 0.05 }}
+                      >
+                        <TalentCard talent={talent} />
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  {visibleCount < talents.length && (
+                    <div className="flex justify-center pt-4">
+                       <button 
+                         onClick={() => setVisibleCount(prev => prev + 6)}
+                         className="px-10 py-4 bg-white border-2 border-slate-100 text-slate-900 font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-slate-50 hover:border-slate-200 transition-all active:scale-95 shadow-lg shadow-slate-100"
+                       >
+                          Découvrir plus de talents
+                       </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="bg-white rounded-[40px] p-20 text-center border-2 border-dashed border-slate-200">
@@ -302,7 +349,6 @@ const TrainerProfile = () => {
               )}
             </div>
           </div>
-
         </div>
       </div>
     </div>

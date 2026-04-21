@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, where, addDoc, deleteDoc, getDocs } from 'firebase/firestore';
+import { collection, query, where, doc, deleteDoc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { UserPlus, UserCheck, Loader2 } from 'lucide-react';
@@ -20,14 +20,9 @@ const FollowTalentButton: React.FC<FollowButtonProps> = ({ talentId, size = 'md'
 
     const checkFollow = async () => {
       try {
-        const followQuery = query(
-          collection(db, 'follows'),
-          where('followerId', '==', user.uid),
-          where('followingId', '==', talentId),
-          where('followingType', '==', 'talent')
-        );
-        const followSnap = await getDocs(followQuery);
-        setIsFollowing(followSnap.docs.length > 0);
+        const followId = `${user.uid}_${talentId}`;
+        const followDoc = await getDoc(doc(db, 'follows', followId));
+        setIsFollowing(followDoc.exists());
       } catch (error: any) {
         setIsFollowing(false);
       }
@@ -45,21 +40,15 @@ const FollowTalentButton: React.FC<FollowButtonProps> = ({ talentId, size = 'md'
     }
 
     setLoading(true);
+    const followId = `${user.uid}_${talentId}`;
+    const followRef = doc(db, 'follows', followId);
+
     try {
       if (isFollowing) {
-        const followQuery = query(
-          collection(db, 'follows'),
-          where('followerId', '==', user.uid),
-          where('followingId', '==', talentId),
-          where('followingType', '==', 'talent')
-        );
-        const followSnap = await getDocs(followQuery);
-        for (const docSnapshot of followSnap.docs) {
-          await deleteDoc(docSnapshot.ref);
-        }
+        await deleteDoc(followRef);
         setIsFollowing(false);
       } else {
-        await addDoc(collection(db, 'follows'), {
+        await setDoc(followRef, {
           followerId: user.uid,
           followingId: talentId,
           followingType: 'talent',

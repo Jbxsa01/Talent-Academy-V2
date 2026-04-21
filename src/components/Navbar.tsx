@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { auth } from '../lib/firebase';
 import { LogOut, User as UserIcon, MessageSquare, Shield, GraduationCap, Plus } from 'lucide-react';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 import { APP_LOGO } from '../lib/constants';
 
@@ -10,6 +12,20 @@ const Navbar = () => {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
+  const [hasUnread, setHasUnread] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    const q = query(
+      collection(db, 'chats'),
+      where('participants', 'array-contains', user.uid)
+    );
+    const unsubscribe = onSnapshot(q, (snap) => {
+      const anyUnread = snap.docs.some(d => d.data().unread?.[user.uid] === true);
+      setHasUnread(anyUnread);
+    });
+    return () => unsubscribe();
+  }, [user]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -52,8 +68,13 @@ const Navbar = () => {
                     <UserIcon className="w-4 h-4" />
                     <span>Mon Bureau</span>
                   </Link>
-                  <Link to="/messaging" className="text-text-muted hover:text-primary transition-colors flex items-center space-x-2">
-                    <MessageSquare className="w-4 h-4" />
+                  <Link to="/messaging" className="text-text-muted hover:text-primary transition-colors flex items-center space-x-2 relative">
+                    <div className="relative">
+                      <MessageSquare className="w-4 h-4" />
+                      {hasUnread && (
+                        <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse border border-white shadow-sm" />
+                      )}
+                    </div>
                     <span>Messagerie</span>
                   </Link>
                 </div>

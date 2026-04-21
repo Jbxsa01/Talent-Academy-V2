@@ -71,7 +71,15 @@ const TalentCard: React.FC<TalentProps> = ({ talent }) => {
           >
             <div className={`w-5 h-5 rounded-full flex items-center justify-center font-black text-[7px] uppercase tracking-tighter flex-shrink-0 text-white bg-accent/10 text-accent group-hover:bg-accent/20 transition-all overflow-hidden`}>
               {talent.trainerPhotoURL ? (
-                <img src={talent.trainerPhotoURL} alt={talent.trainerName} className="w-full h-full object-cover" />
+                <img 
+                  src={talent.trainerPhotoURL} 
+                  alt={talent.trainerName} 
+                  className="w-full h-full object-cover" 
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                    (e.target as HTMLImageElement).parentElement!.innerText = talent.trainerName?.split(' ').map(n => n[0]).join('') || 'HT';
+                  }}
+                />
               ) : (
                 talent.trainerName?.split(' ').map(n => n[0]).join('') || 'HT'
               )}

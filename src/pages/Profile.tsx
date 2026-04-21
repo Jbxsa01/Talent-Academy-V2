@@ -31,6 +31,36 @@ const Profile = () => {
     bannerURL: profile?.bannerURL || '',
   });
 
+  const compressImage = (dataUrl: string, maxWidth: number, maxHeight: number): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.src = dataUrl;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height *= maxWidth / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width *= maxHeight / height;
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.7)); // Compress to 70% quality JPEG
+      };
+    });
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -38,9 +68,10 @@ const Profile = () => {
     setIsUploading(true);
     try {
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         const dataUrl = event.target?.result as string;
-        setFormData(prev => ({ ...prev, photoURL: dataUrl }));
+        const compressed = await compressImage(dataUrl, 400, 400); // 400px for avatar
+        setFormData(prev => ({ ...prev, photoURL: compressed }));
         setIsUploading(false);
       };
       reader.readAsDataURL(file);
@@ -59,9 +90,10 @@ const Profile = () => {
     setUploadingBanner(true);
     try {
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         const dataUrl = event.target?.result as string;
-        setFormData(prev => ({ ...prev, bannerURL: dataUrl }));
+        const compressed = await compressImage(dataUrl, 1200, 400); // 1200px for banner
+        setFormData(prev => ({ ...prev, bannerURL: compressed }));
         setUploadingBanner(false);
       };
       reader.readAsDataURL(file);
@@ -87,6 +119,18 @@ const Profile = () => {
         bannerURL: formData.bannerURL,
         updatedAt: new Date().toISOString(),
       });
+
+      // SYNC: Update all talents by this trainer
+      const talentsQuery = query(collection(db, 'talents'), where('trainerId', '==', user.uid));
+      const talentsSnap = await getDocs(talentsQuery);
+      const updatePromises = talentsSnap.docs.map(tDoc => 
+        updateDoc(doc(db, 'talents', tDoc.id), {
+          trainerName: formData.displayName,
+          trainerPhotoURL: formData.photoURL
+        })
+      );
+      await Promise.all(updatePromises);
+
       setIsEditing(false);
       window.location.reload();
     } catch (err) {
@@ -160,13 +204,21 @@ const Profile = () => {
             >
               <div className="relative group">
                 <div className="w-40 h-40 rounded-[40px] border-8 border-white shadow-2xl overflow-hidden bg-slate-50 ring-1 ring-slate-100">
-                  {formData.photoURL ? (
-                    <img src={formData.photoURL} alt={formData.displayName} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-5xl font-black text-slate-200 uppercase">
-                      {formData.displayName?.charAt(0) || '?'}
-                    </div>
-                  )}
+                    {formData.photoURL ? (
+                      <img 
+                        src={formData.photoURL} 
+                        alt={formData.displayName} 
+                        className="w-full h-full object-cover" 
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                          (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center text-5xl font-black text-slate-200 uppercase">${formData.displayName?.split(' ').map((n: string) => n[0]).join('') || '?'}</div>`;
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-5xl font-black text-slate-200 uppercase">
+                        {formData.displayName?.split(' ').map((n: string) => n[0]).join('') || '?'}
+                      </div>
+                    )}
                 </div>
                 {isEditing && (
                   <button
