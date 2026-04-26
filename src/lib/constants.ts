@@ -1,4 +1,4 @@
-export const APP_LOGO = '/img/logov2.png';
+export const APP_LOGO = '/img/logo.png';
 export const HESTIM_DOMAIN = 'HESTIM.ma';
 export const CATEGORIES = [
   'Musique / Chant',
